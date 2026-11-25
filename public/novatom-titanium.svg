@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 958 187" role="img" aria-label="NovAtom Labs">
+  <defs>
+    <linearGradient id="metal" x2=".13" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#f5f8ff"/><stop offset=".65" stop-color="#afc6e8"/><stop offset="1" stop-color="#4d79ce"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#metal)" fill-rule="evenodd">
+    <path d="M0 130V3h23l83 80V3h27v127h-23L27 50v80z"/>
+    <path d="M204 2h25c40 0 65 25 65 64s-25 65-65 65h-25c-40 0-65-26-65-65s25-64 65-64zm0 26c-25 0-38 14-38 38s13 39 38 39h25c25 0 38-15 38-39s-13-38-38-38z"/>
+    <path d="M279 3h32l45 88 45-88h32l-66 127h-23z"/>
+    <path d="M392 130 460 3h26l68 127h-32l-14-27h-71l-14 27zM451 77h43l-21-42z"/>
+    <path d="M519 3h137v26h-55v101h-27V29h-41z"/>
+    <path d="M715 2h23c40 0 65 25 65 64s-25 65-65 65h-23c-40 0-65-26-65-65s25-64 65-64zm0 26c-25 0-38 14-38 38s13 39 38 39h23c25 0 38-15 38-39s-13-38-38-38z"/>
+    <path d="M811 130V3h24l50 61 49-61h24v127h-27V48l-46 57-47-57v82z"/>
+  </g>
+  <g fill="url(#metal)" fill-rule="evenodd">
+    <path d="M750 148h9v29h36v8h-45z"/>
+    <path d="M797 185l20-37h9l21 37h-10l-4-8h-23l-4 8zm17-15h15l-8-14z"/>
+    <path d="M851 148h27c9 0 14 4 14 10 0 4-2 7-5 8 4 1 7 4 7 8 0 7-5 11-14 11h-29zm9 8v7h17c4 0 6-1 6-4s-2-3-6-3zm0 14v7h19c4 0 6-1 6-4s-2-3-6-3z"/>
+    <path d="M901 158c0-7 6-10 16-10h40v8h-40c-5 0-7 0-7 3 0 2 2 3 7 3h26c10 0 15 4 15 11 0 8-5 12-15 12h-42v-8h42c4 0 6-1 6-3 0-3-2-4-6-4h-26c-10 0-16-4-16-12z"/>
+  </g>
+</svg>

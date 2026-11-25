@@ -1,5 +1,7 @@
 import './styles.css';
 import './v2.css';
+import './editorial.css';
+import { mountParticleSignature } from './scene/particle-signature.js';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
@@ -50,8 +52,9 @@ async function initField() {
   try {
     const { Field } = await import('./scene/field.js');
     field = new Field(canvas, tierInfo);
-    field.onDegrade = (what) => { if (what === 'off') { canvas.style.display = 'none'; field.disabled = true; } };
-    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); field.lost = true; });
+    root.classList.add('has-webgl-field');
+    field.onDegrade = (what) => { if (what === 'off') { canvas.style.display = 'none'; field.disabled = true; root.classList.remove('has-webgl-field'); } };
+    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); field.lost = true; root.classList.remove('has-webgl-field'); });
     canvas.addEventListener('webglcontextrestored', () => location.reload());
     window.__field = field;
     return field;
@@ -99,8 +102,8 @@ function tick(time, deltaMs) {
 
 /* ------------------------------------------------------------------ page lifecycle */
 /* ------------------------------------------------------------------ the opener: the points spell the name until the visitor clicks */
-const MORPH_SECONDS = 4.2;   // how long the name takes to become the crystal (it starts moving the instant you click)
-const IDLE_SECONDS = 9;     // a visitor who does nothing still gets the morph after this long
+const MORPH_SECONDS = 2.6;
+const IDLE_SECONDS = 1.5;   // Brief signature before the editorial masthead appears.
 let openerPlayed = false;   // plays once per page load; returning to Home through the nav shows the normal hero
 let openState = 'done';     // 'name' while waiting, 'morphing', then 'done'
 let openTween = null, openIdle = 0, openUnbind = null;
@@ -206,7 +209,7 @@ function applyOpener() {
 
 function setActiveNav() {
   const here = location.pathname.replace(/\/$/, '');
-  $$('.nav-links a, .foot nav a').forEach((a) => {
+  $$('.nav-links a, #menu a, .foot nav a').forEach((a) => {
     const p = new URL(a.href).pathname.replace(/\/$/, '');
     const inProducts = a.classList.contains('menu-trigger') && ['/products', '/nexcon', '/kronig'].includes(here);
     if (p === here || inProducts) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
@@ -219,6 +222,10 @@ function initPage() {
   reactive.clear();
   abort = new AbortController();
   env.signal = abort.signal;
+  const signature = document.querySelector('.hero-signature');
+  if (signature && !reduced && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    abort.signal.addEventListener('abort', mountParticleSignature(signature), { once: true });
+  }
   ctx = gsap.context(() => initPageContent(env));
   director.rebuild();
   window.__geo = director.geo;
@@ -338,21 +345,47 @@ function closeMenu(instant) {
   menuOpen = false;
   btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-label', 'Open menu');
   menu.classList.remove('is-open');
+  menu.inert = true;
   lenis && lenis.start();
   if (instant) menu.hidden = true; else setTimeout(() => { if (!menuOpen) menu.hidden = true; }, 600);
 }
 function initMenu() {
   const btn = $('#menuBtn'), menu = $('#menu');
+  const links = $$('a', menu);
+  matchMedia('(max-width: 1024px)').addEventListener('change', (event) => {
+    if (!event.matches) closeMenu(true);
+  });
   btn.addEventListener('click', () => {
     if (menuOpen) return closeMenu();
-    menuOpen = true; menu.hidden = false;
-    requestAnimationFrame(() => menu.classList.add('is-open'));
+    menuOpen = true; menu.hidden = false; menu.inert = false;
+    requestAnimationFrame(() => { if (menuOpen) menu.classList.add('is-open'); });
     btn.setAttribute('aria-expanded', 'true'); btn.setAttribute('aria-label', 'Close menu');
     lenis && lenis.stop();
-    $('a', menu).focus({ preventScroll: true });
+    const current = $('[aria-current="page"]', menu);
+    const group = current?.closest('details');
+    if (group) group.open = true;
+    (current ?? links[0]).focus({ preventScroll: true });
   });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
-  $$('a', menu).forEach((a) => a.addEventListener('click', () => closeMenu()));
+  document.addEventListener('keydown', (e) => {
+    if (!menuOpen) return;
+    const items = $$('a, summary', menu).filter((item) => item.getClientRects().length);
+    const index = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') {
+      closeMenu();
+      btn.focus({ preventScroll: true });
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const next = index < 0 ? (e.key === 'ArrowDown' ? 0 : items.length - 1)
+        : (index + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length;
+      items[next].focus();
+    } else if (e.key === 'Tab') {
+      const focusOrder = [btn, ...items];
+      const next = (focusOrder.indexOf(document.activeElement) + (e.shiftKey ? -1 : 1) + focusOrder.length) % focusOrder.length;
+      e.preventDefault();
+      focusOrder[next].focus();
+    }
+  });
+  links.forEach((a) => a.addEventListener('click', () => closeMenu()));
 }
 function initNavHide() {
   const nav = $('#nav');
@@ -385,10 +418,18 @@ function initDebug() {
 
 /* ------------------------------------------------------------------ boot */
 async function boot() {
+  const signature = document.querySelector('.foot-signature');
+  if (signature && !reduced && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    mountParticleSignature(signature);
+  }
   try {
     // ask for the three families explicitly so they are really loaded, not just "ready" with nothing requested yet
     await Promise.race([
-      Promise.all([document.fonts.load('600 1em "Bricolage Grotesque Variable"'), document.fonts.load('1em "Newsreader Variable"'), document.fonts.load('1em "JetBrains Mono"')]).then(() => document.fonts.ready),
+      Promise.all([
+        document.fonts.load('600 1em "Instrument Sans Variable"'),
+        document.fonts.load('600 1em "Bricolage Grotesque Variable"'),
+        document.fonts.load('1em "JetBrains Mono"'),
+      ]).then(() => document.fonts.ready),
       new Promise((r) => setTimeout(r, 2500)),
     ]);
   } catch { /* ignore */ }
@@ -398,11 +439,23 @@ async function boot() {
   const failsafe = setTimeout(() => { root.classList.add('ready'); $('#wipe').style.display = 'none'; }, 9000);
   wipe = createWipe(() => field);
 
+  const siteGrid = $('#siteGrid');
+  const hideGridLight = () => siteGrid?.classList.remove('is-lit');
   addEventListener('pointermove', (e) => {
     pointerN.x = e.clientX / innerWidth; pointerN.y = e.clientY / innerHeight;
-    if (field && e.pointerType !== 'touch') field.pointer(e.clientX, e.clientY);
+    if (e.pointerType === 'touch') { hideGridLight(); return; }
+    if (field) field.pointer(e.clientX, e.clientY);
+    if (siteGrid) {
+      siteGrid.style.setProperty('--light-x', `${e.clientX}px`);
+      siteGrid.style.setProperty('--light-y', `${e.clientY}px`);
+      siteGrid.classList.add('is-lit');
+    }
   }, { passive: true });
-  document.addEventListener('pointerleave', () => field && field.pointer(null));
+  document.addEventListener('pointerleave', () => {
+    hideGridLight();
+    field?.pointer(null);
+  });
+  addEventListener('blur', hideGridLight);
   let rz;
   addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { director.rebuild(); field && field.resize(); ScrollTrigger.refresh(); if (reduced && field) { staticRender(); } }, 150); });
   ScrollTrigger.addEventListener('refresh', () => director.rebuild());

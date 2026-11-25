@@ -9,7 +9,7 @@
  *   loop      the five-step discovery loop on a pinned screen (funnel, oracle ring, crystal)
  *   explore   orbits / crystal behind the way-in links
  * Every other page is described by data-pose attributes on its sections, interpolated by
- * scroll: data-pose="st:5;op:1;ox:3.4;sc:1.3;rp:.4;du:.7;cl:-1 -1 -.08 1;ck:.9".
+ * scroll: data-pose="st:8;op:1;ox:3.4;sc:1.3;rp:.4;du:.7;cl:-1 -1 -.08 1;ck:.9".
  */
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -17,7 +17,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
 const mixRect = (a, b, t) => a.map((v, i) => lerp(v, b[i], t));
 
-const DEFAULT = { st: 5, op: 1, ox: 0, oy: 0, sc: 1, rp: 0, du: 0, cl: [-1, -1, -0.1, 1], ck: 0 };
+const DEFAULT = { st: 8, op: 1, ox: 0, oy: 0, sc: 1, rp: 0, du: 0, cl: [-1, -1, -0.1, 1], ck: 0 };
 
 function parsePose(str, base = DEFAULT) {
   const p = { ...base, cl: [...base.cl] };
@@ -33,11 +33,15 @@ function parsePose(str, base = DEFAULT) {
 
 export function createDirector(env) {
   const D = {
-    a: 5, b: 5, m: 0, sc: 1, ox: 0, oy: 0, op: 1, rp: 0, du: 0, ck: 0, cl: [-1, -1, 0.4, 0.35],
+    a: 8, b: 8, m: 0, sc: 1, ox: 0, oy: 0, op: 1, rp: 0, du: 0, ck: 0, cl: [-1, -1, 0.4, 0.35],
     vel: 0, lastY: 0, rotY: 0, rotX: 0,
   };
   const geo = {};
   let anchors = [];
+  let coreSvg = null;
+  let mobileScene = null;
+  let loopCopy = null;
+
   let lastUi = -1;
   let lastCue = -1;
   let chromeHold = false;
@@ -52,6 +56,10 @@ export function createDirector(env) {
   function adapt(p) {
     if (!mobile()) return p;
     const q = { ...p, cl: [...p.cl] };
+    if (q.st === 12) {
+      q.sc *= 0.86;
+      q.oy = 0.35;
+    }
     if (q.ox > 0) { q.oy = q.oy || 2.3; q.ox = 0; }
     if (q.cl[2] < 0.5 && q.cl[0] <= -0.9) q.cl = [-1, -1, 1, -0.05];
     if (q.sc > 1.2) q.sc *= 1.15;
@@ -61,10 +69,14 @@ export function createDirector(env) {
 
   function rebuild() {
     page = document.body.dataset.page || 'home';
+    coreSvg = document.getElementById('coreSvg');
+    mobileScene = document.querySelector('.mobile-scene');
+    loopCopy = document.querySelector('.loop-copy');
+
     const y = window.scrollY;
     const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top + y, h: r.height }; };
     Object.keys(geo).forEach((k) => delete geo[k]);
-    ['top', 'space', 'loop'].forEach((id) => { const el = document.getElementById(id); if (el) geo[id] = box(el); });
+    ['top', 'space', 'loop', 'explore'].forEach((id) => { const el = document.getElementById(id); if (el) geo[id] = box(el); });
     geo.page = document.documentElement.scrollHeight;
     geo.sections = {};
     $$('main section[id]').forEach((el) => { geo.sections[el.id] = box(el); });
@@ -85,7 +97,7 @@ export function createDirector(env) {
 
     if (page === 'home' && geo.loop) {
       const vh = innerHeight, mob = mobile();
-      anchors.unshift({ at: geo.loop.top + geo.loop.h - vh * 0.5, st: 5, op: 1, ox: mob ? 0 : 3.2, oy: mob ? 2.3 : 0, sc: 1, rp: 0, du: 0, cl: loopClear(mob), ck: 0.92 });
+      anchors.unshift({ at: geo.loop.top + geo.loop.h - vh * 0.5, st: 8, op: 1, ox: mob ? 0 : 3.2, oy: mob ? 2.3 : 0, sc: 1, rp: 0, du: 0, cl: loopClear(mob), ck: 0.92 });
     }
     anchors = anchors.map(adapt);
     return geo;
@@ -94,7 +106,7 @@ export function createDirector(env) {
   /** generic pose from the anchors, evaluated at the viewport centre */
   function anchorPose(y) {
     const vh = innerHeight, yc = y + vh * 0.5;
-    if (!anchors.length) return { ...adapt(DEFAULT), a: 5, b: 5, m: 0 };
+    if (!anchors.length) return { ...adapt(DEFAULT), a: 8, b: 8, m: 0 };
     let i = 0;
     while (i < anchors.length - 1 && yc > anchors[i + 1].at) i++;
     const a = anchors[i], b = anchors[Math.min(i + 1, anchors.length - 1)];
@@ -112,17 +124,19 @@ export function createDirector(env) {
 
   function homeTarget(y) {
     const vh = innerHeight, mob = mobile();
-    const hx = mob ? 0 : 3.9, hy = mob ? 2.3 : 0;
+    const hx = 0, hy = mob ? -0.35 : -1.95;
+    const phoneFit = Math.min(1, innerWidth / vh / 0.46);
+    const heroScale = mob ? 1.02 * phoneFit : 0.93;
     const lx = mob ? 0 : 3.2, ly = mob ? 2.3 : 0;
-    const T = { a: 5, b: 5, m: 0, sc: 1.45, ox: hx, oy: hy, op: 1, rp: 1.5, du: 1, cl: mob ? [-1, -1, 1, 0.15] : [-1, -1, 0.4, 0.35], ck: 0.9, lp: 0, sp: 0, da: 0, sb: 0 };
+    const T = { a: 8, b: 8, m: 0, sc: heroScale, ox: hx, oy: hy, op: 1, rp: 0.55, du: 1, cl: mob ? [-1, -1, 1, 0.15] : [-1, -1, 0.4, 0.35], ck: 0.05, lp: 0, sp: 0, da: 0, sb: 0 };
     const spaceTop = geo.space.top, spaceH = geo.space.h, loopTop = geo.loop.top;
 
     if (y < spaceTop) {
       // hero: the crystal breathes forward a little as you leave
       const h = clamp(y / spaceTop);
-      T.sc = lerp(1.45, 1.85, h);
+      T.sc = lerp(heroScale, 1.85, h);
       T.ox = lerp(hx, hx * 0.55, h);
-      T.ck = lerp(0.9, 0.55, h);
+      T.ck = lerp(0.05, 0.55, h);
     } else {
       // space: dive into the lattice, then dissolve into the search space
       const sp = clamp((y - spaceTop) / (spaceH - vh));
@@ -133,7 +147,7 @@ export function createDirector(env) {
       T.ox = lerp(hx * 0.55, 0, dive);
       T.oy = lerp(hy, 0, dive);
       if (morph > 0) {
-        T.a = 5; T.b = 0; T.m = morph;
+        T.a = 8; T.b = 0; T.m = morph;
         T.sc = lerp(3.4, 1.25, sstep(0, 1, morph));
         T.rp = lerp(1.5, 0.1, morph);
         T.du = lerp(1, 0, morph);
@@ -155,7 +169,7 @@ export function createDirector(env) {
       const aspect = innerWidth / innerHeight;
       const fit = Math.max(0.5, Math.min(1, aspect / 1.75));
       const scText = (10.2 * aspect) / (11.5 * fit);
-      if (m7 < 1) { T.a = 7; T.b = 5; T.m = 0.16 + 0.68 * m7; }   // 0.16..0.84 is the shader's live range: no dead zone at the start
+      if (m7 < 1) { T.a = 7; T.b = 8; T.m = 0.16 + 0.68 * m7; }   // 0.16..0.84 is the shader's live range: no dead zone at the start
       T.sc = lerp(scText, T.sc, m7) * (1 + 0.3 * Math.sin(Math.PI * o));   // the camera pushes in through the vortex
       T.ox = lerp(0, T.ox, m7); T.oy = lerp(0, T.oy, m7);
       // sonar: a shock at the click, and a hard pulse as the lattice locks
@@ -168,7 +182,7 @@ export function createDirector(env) {
     // entering the loop: settle the cloud into the loop pose
     const e = sstep(0, 1, (y - (loopTop - vh)) / vh);
     if (e > 0) {
-      T.sc = lerp(T.sc, 1, e); T.ox = lerp(T.ox, lx, e); T.oy = lerp(T.oy, ly, e);
+      T.sc = lerp(T.sc, mob ? 0.82 * phoneFit : 1, e); T.ox = lerp(T.ox, lx, e); T.oy = lerp(T.oy, ly, e);
       T.cl = mixRect(T.cl, loopClear(mob), e); T.ck = lerp(T.ck, 0.92, e);
       T.rp = lerp(T.rp, 0, e); T.du = lerp(T.du, 0, e);
     }
@@ -179,10 +193,45 @@ export function createDirector(env) {
     if (y >= loopTop - 1) {
       const stage = lp * 5;
       const k = Math.min(5, Math.floor(stage));
-      T.a = k; T.b = Math.min(5, k + 1); T.m = k >= 5 ? 0 : stage - k;
-      if (k >= 5) { T.a = 5; T.b = 5; }
+      T.a = k === 5 ? 8 : k;
+      T.b = k >= 4 ? 8 : k + 1;
+      T.m = k === 5 ? 0 : stage - k;
+      // Ease the horizontal adjustment in and out with the Define pose.
+      const defineWeight = T.a === 1 ? 1 - sstep(0.16, 0.84, T.m)
+        : T.b === 1 ? sstep(0.16, 0.84, T.m) : 0;
+      T.ox += (innerWidth <= 1024 ? -0.8 : 0.15) * defineWeight;
+      if (mob && loopCopy) {
+        const top = 64;
+        const room = Math.max(110, loopCopy.getBoundingClientRect().top - top - 12);
+        const aspect = innerWidth / vh;
+        const fit = Math.max(0.5, Math.min(1, aspect / 1.75));
+        const units = 36 * Math.tan(Math.PI / 9) / vh;
+        const frame = sstep(0, 0.08, lp);
+        const fittedScale = Math.min(innerWidth * 0.91 * units / 9.7, room * 0.90 * units / 8.5) / fit;
+        T.sc = lerp(T.sc, fittedScale, frame);
+        T.oy = lerp(T.oy, (vh / 2 - top - room / 2) * units, frame);
+        T.cl = [-1, -1, 1, 1 - (top + room) / vh * 2];
+      }
     }
     return T;
+  }
+
+  function frameMobileScene(pose) {
+    if (!mobile() || !mobileScene) return;
+    const rect = mobileScene.getBoundingClientRect();
+    if (!rect.height) return;
+    if (rect.bottom < 0 || rect.top > innerHeight) return;
+    const vh = innerHeight;
+    const fit = Math.max(0.5, Math.min(1, innerWidth / vh / 1.75));
+    const units = 36 * Math.tan(Math.PI / 9) / vh;
+    const material = page === 'nexcon';
+    const frameWeight = sstep(0, rect.height * 0.65, Math.min(rect.bottom, vh - rect.top));
+    const scale = Math.min(rect.width * units / 10.3, rect.height * units / (material ? 8.8 : 9.8)) / fit;
+    pose.sc = lerp(pose.sc, scale, frameWeight);
+    pose.ox = lerp(pose.ox, 0, frameWeight);
+    pose.oy = lerp(pose.oy, (vh / 2 - rect.top - rect.height / 2) * units, frameWeight);
+    pose.ck = lerp(pose.ck, material ? 0 : 0.04, frameWeight);
+    pose.op = lerp(pose.op, 1, frameWeight);
   }
 
   /** @returns the target scene for this scroll position */
@@ -192,10 +241,21 @@ export function createDirector(env) {
       const loopEnd = geo.loop.top + geo.loop.h - innerHeight * 0.5;
       if (yc <= loopEnd) return homeTarget(y);
       const P = anchorPose(y);
+      frameMobileScene(P);
       P.lp = 1; P.sp = 1; P.da = 0; P.sb = 1;
       return P;
     }
     const P = anchorPose(y);
+    frameMobileScene(P);
+    if (coreSvg && (P.a === 10 || P.b === 10)) {
+      const rect = coreSvg.getBoundingClientRect();
+      const fit = Math.max(0.5, Math.min(1, innerWidth / innerHeight / 1.75));
+      const units = 2 * 18 * Math.tan(Math.PI / 9) / innerHeight;
+      const weight = P.a === P.b ? 1 : P.a === 10 ? 1 - P.m : P.m;
+      P.ox = lerp(P.ox, (rect.left + rect.width / 2 - document.documentElement.clientWidth / 2) * units / fit, weight);
+      P.oy = lerp(P.oy, (innerHeight / 2 - rect.top - rect.height / 2) * units, weight);
+      P.sc = lerp(P.sc, Math.min(rect.width / 600, rect.height / 560) * 140 * units / (3.1 * fit), weight);
+    }
     P.lp = 0; P.sp = 0; P.da = 0; P.sb = 1;
     return P;
   }
@@ -241,8 +301,13 @@ export function createDirector(env) {
 
     if (field) {
       const s = field.state;
+
       s.a = D.a; s.b = D.b; s.m = D.m;
       s.scale = D.sc; s.offsetX = D.ox; s.offsetY = D.oy;
+      // Screen-space lower boundary, shared by the wafer and its edge particles.
+      s.waferBoundary = geo.explore
+        ? (geo.explore.top + geo.explore.h - y) / innerHeight
+        : 1;
       s.ripple = D.rp; s.dust = D.du; s.clear = D.cl; s.clearK = D.ck; s.vel = D.vel;
       // the slow spin is wrapped to (-pi, pi] so it can never grow without bound
       let spin = (0.3 + (y / Math.max(1, geo.page)) * 2.2 + clock * 0.03) % (2 * Math.PI);

@@ -1,38 +1,35 @@
-    <section class="kronig" id="kronig" data-rail="Kronig" data-at=".08" data-pose="st:6;op:.55;ox:3.4;sc:1;rp:.5;du:.5;cl:-1 -1 -.1 1;ck:.9" data-at2=".4" data-pose2="st:6;op:0" aria-labelledby="h-kronig">
+    <section class="kronig" id="kronig" data-rail="Kronig" data-at=".08" data-pose="st:12;op:.85;ox:0;sc:1.08;rp:0;cl:-1 -.7 -.1 .85;ck:.7" data-at2=".4" data-pose2="st:12;op:.48;sc:1;rp:0;ck:0" aria-labelledby="h-kronig">
       <div class="kronig-inner">
         <header class="kronig-head">
-          <h1 id="h-kronig" class="h2 h1" data-split>Kronig: device simulation from a plain-English request.</h1>
+          <h1 id="h-kronig" class="h2 h1" data-split>Kronig: device simulation from plain English.</h1>
           <div class="kronig-lead">
-            <p>Describe the device as you would to a colleague. Kronig asks only for what is missing, proposes a plan for your approval, runs the simulation, and reports a result only after independent checks on the solver output have passed. In our platform it is the device layer: it predicts how a device built from a discovered material behaves.</p>
+            <p>Describe your device. Kronig asks for missing details, proposes a plan for approval, then runs and validates the simulation.</p>
+            <a class="textlink" href="#kronig-results">See the solver comparison</a>
             <p class="note">Desktop app for Windows, macOS and Linux. Runs on DEVSIM locally or on Synopsys Sentaurus over SSH.</p>
           </div>
         </header>
 
-        <ol class="pipe" id="pipe" aria-label="How a Kronig run works">
-          <li><span class="pipe-t">Request</span><small>Plain English</small></li>
-          <li><span class="pipe-t">Questions</span><small>Only what it needs</small></li>
-          <li><span class="pipe-t">Typed spec</span><small>Simulator-neutral</small></li>
-          <li><span class="pipe-t">Plan approval</span><small>You sign off first</small></li>
-          <li><span class="pipe-t">Simulation</span><small>DEVSIM or Sentaurus</small></li>
-          <li><span class="pipe-t">Validation</span><small>20+ physics checks</small></li>
-          <li><span class="pipe-t">Workbench</span><small>Plots, CSV, SVG, PNG</small></li>
-        </ol>
 
-        <div class="k-grid">
+
+        <div class="k-grid" id="kronig-results">
           <div class="k-agree">
-            <h3 class="h3">Two independent solvers agree.</h3>
+            <h2 class="h3">Two independent solvers agree.</h2>
+            <dl class="k-peaks" aria-label="Peak field in a 2.5 micrometre asymmetric silicon junction">
+              <div><dt>DEVSIM</dt><dd>101 <small>kV/cm</small></dd></div>
+              <div><dt>Sentaurus</dt><dd>97 <small>kV/cm</small></dd></div>
+            </dl>
             <p>The same experiment is run on DEVSIM and on Synopsys Sentaurus. The two solvers share no code, so agreement between them is a genuine cross-check.</p>
             <ul class="bars" id="bars" aria-label="Difference between the two solvers">
               <li style="--w:74%"><span class="bar-l">Built-in potential, PN junction</span><span class="bar-t" aria-hidden="true"><span class="bar-f"></span></span><span class="bar-v" data-to="3.7">3.7%</span></li>
               <li style="--w:72%"><span class="bar-l">Largest MOSFET output-current difference</span><span class="bar-t" aria-hidden="true"><span class="bar-f"></span></span><span class="bar-v" data-to="3.6">3.6%</span></li>
               <li style="--w:20%"><span class="bar-l">Median MOS capacitance difference</span><span class="bar-t" aria-hidden="true"><span class="bar-f"></span></span><span class="bar-v" data-to="1.0">1.0%</span></li>
             </ul>
-            <p class="note">Asymmetric silicon junction, 2.5 µm: peak field 101 kV/cm on DEVSIM and 97 kV/cm on Sentaurus. Axis runs from 0 to 5%.</p>
+            <p class="note">Peak fields are from an asymmetric 2.5 µm silicon junction. The difference bars use a 0–5% scale.</p>
           </div>
 
-          <div class="k-checks">
-            <h3 class="h3">Validation is code, not judgement.</h3>
-            <p>A run is reported as passed only when independent checks on the solver output agree. Twelve of the more than twenty checks are listed.</p>
+          <section class="k-detail k-checks">
+            <h2 class="h3">Validation checks</h2>
+            <p>Kronig checks solver output before reporting a pass. Here are 12 of its 20+ checks.</p>
             <ul class="checks" id="checks">
               <li>Solver convergence at every point</li>
               <li>Poisson residual consistency</li>
@@ -47,12 +44,12 @@
               <li>Requested outputs present</li>
               <li>Study order preserved</li>
             </ul>
-          </div>
+          </section>
         </div>
 
         <div class="k-suite">
           <h3 class="h3">Test record.</h3>
-          <p>A 34-scenario suite, from vague one-line requests to fully specified devices, is driven through the real application on both backends by an automated harness. Requests outside the supported physics are refused with an explanation.</p>
+          <p>An automated suite runs 34 scenarios through Kronig on both backends, from brief requests to fully specified devices. Kronig explains when a request falls outside the supported physics.</p>
           <dl class="facts facts-row">
             <div><dt>29 + 29</dt><dd>scenarios with every check passed, on DEVSIM and on Sentaurus</dd></div>
             <div><dt>741</dt><dd>validation checks passed in total</dd></div>
@@ -60,6 +57,21 @@
           </dl>
         </div>
 
+        <section class="k-detail">
+          <h2 class="h3">How a run works</h2>
+          <ol class="pipe" id="pipe" aria-label="How a Kronig run works">
+          <li><span class="pipe-t">Request</span><small>Plain English</small></li>
+          <li><span class="pipe-t">Questions</span><small>Only what it needs</small></li>
+          <li><span class="pipe-t">Typed spec</span><small>Simulator-neutral</small></li>
+          <li><span class="pipe-t">Plan approval</span><small>You sign off first</small></li>
+          <li><span class="pipe-t">Simulation</span><small>DEVSIM or Sentaurus</small></li>
+          <li><span class="pipe-t">Validation</span><small>20+ physics checks</small></li>
+          <li><span class="pipe-t">Workbench</span><small>Plots, CSV, SVG, PNG</small></li>
+        </ol>
+        </section>
+        <section class="k-detail">
+          <h2 class="h3">Supported devices and experiments</h2>
+          <div class="k-table">
         <table class="k-exps">
           <caption class="visually-hidden">The nine experiment types Kronig supports</caption>
           <thead><tr><th scope="col">Device</th><th scope="col">What you can ask for</th></tr></thead>
@@ -70,6 +82,8 @@
             <tr><th scope="row">MOSFET, 2D</th><td>Band diagram under bias. Id-Vg and Id-Vd.</td></tr>
           </tbody>
         </table>
+          </div>
+        </section>
         <p class="note k-foot">Wide-bandgap device physics for GaN and SiC is the next addition, so material cards from the discovery engine can flow straight into device simulation. Sentaurus is a trademark of Synopsys, Inc.</p>
       </div>
     </section>

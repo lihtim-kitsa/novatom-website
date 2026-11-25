@@ -3,6 +3,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin';
 import { MATERIALS } from './scene/lattices.js';
+import { ELEMENT_COLORS, MATERIAL_ELEMENTS } from './scene/element-colors.js';
 
 gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin);
 
@@ -44,7 +45,7 @@ export function createPageTicker() {
   const stepLive = $('#stepLive');
   const space = $('#space');
   const bnExp = $('#bnExp');
-  const NAMES = ['Define', 'Hypothesise', 'Screen', 'Make and measure', 'Learn'];
+  const NAMES = ['Define', 'Hypothesise', 'Screen', 'Make & Measure', 'Learn'];
   let activeStep = -1, lastExp = '', lastDa = -1, lastSb = -1;
 
   return (T) => {
@@ -136,7 +137,7 @@ function initKronig(env) {
     tl.from(fill, { scaleX: 0, duration: 1.4, ease: 'power3.out' }, 0);
     tl.to(o, { v: to, duration: 1.4, ease: 'power3.out', onUpdate: () => { val.textContent = o.v.toFixed(1) + '%'; } }, 0);
   });
-  gsap.fromTo('#checks li', { '--tick': 0 }, { '--tick': 1, duration: 0.5, stagger: 0.09, ease: 'back.out(2.2)', scrollTrigger: { trigger: '#checks', start: 'top 85%', once: true } });
+
 }
 
 /* ------------------------------------------------------------------ inverse design: a target walks the band-gap curve */
@@ -215,6 +216,16 @@ function initMaterials(env) {
   const btns = $$('.mat');
   if (!btns.length) return;
   const nameEl = $('#structName'), paramEl = $('#structParams');
+  const legend = $('#elementLegend');
+  function showElements(i) {
+    legend?.replaceChildren(...MATERIAL_ELEMENTS[i].map((symbol) => {
+      const item = document.createElement('li');
+      item.textContent = symbol;
+      item.style.setProperty('--element-color', ELEMENT_COLORS[symbol]);
+      return item;
+    }));
+  }
+  showElements(0);
   const info = MATERIALS.map((m) => ({ name: m.structure, params: m.params }));
   let target = 0, hoverT = 0;
   function select(i) {
@@ -222,6 +233,7 @@ function initMaterials(env) {
     target = i;
     btns.forEach((b, j) => { b.classList.toggle('is-on', j === i); b.setAttribute('aria-pressed', String(j === i)); });
     nameEl.textContent = info[i].name; paramEl.textContent = info[i].params;
+      showElements(i);
     env.morph(i);
   }
   btns.forEach((b, i) => {
@@ -240,7 +252,7 @@ function initExploreHover(env) {
 }
 
 /* ------------------------------------------------------------------ the core loop and its domain packs */
-const CORE_STAGES = ['Define', 'Hypothesise', 'Screen', 'Make and measure', 'Learn'];
+const CORE_STAGES = ['Define', 'Hypothesise', 'Screen', 'Make & Measure', 'Learn'];
 const PACKS = [
   { name: 'Semiconductors', prod: 'NexCon-03', status: 'Live', slots: ['Alloys, dopants and stacks', 'DFT and TCAD simulation', 'Deposition, XRD, Hall', 'Band ordering, convergence', 'Gas, temperature, vacuum'] },
   { name: 'Drug discovery', prod: 'NexPharma-01', status: 'Planned', slots: ['Ligands and targets', 'Docking and ADMET models', 'Assays and plate readers', 'Selectivity and toxicity flags', 'Biosafety level, dose'] },

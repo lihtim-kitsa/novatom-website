@@ -1,5 +1,5 @@
 @import '@fontsource-variable/bricolage-grotesque/wdth.css';
-@import '@fontsource-variable/newsreader/opsz.css';
+@import '@fontsource-variable/instrument-sans';
 @import '@fontsource/jetbrains-mono/400.css';
 
 /* ------------------------------------------------------------------
@@ -19,8 +19,8 @@
   --cobalt-t: #86acff;
   --amber: #f0b655;
 
-  --f-display: 'Bricolage Grotesque Variable', 'Helvetica Neue', Arial, sans-serif;
-  --f-text: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --f-display: 'Instrument Sans Variable', 'Helvetica Neue', Arial, sans-serif;
+  --f-text: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --f-data: 'JetBrains Mono', ui-monospace, Consolas, monospace;
 
   --pad: clamp(20px, 4vw, 64px);
@@ -41,7 +41,6 @@ body {
   font-family: var(--f-text);
   font-size: clamp(1.05rem, 0.98rem + 0.3vw, 1.25rem);
   line-height: 1.55;
-  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;

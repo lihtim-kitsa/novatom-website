@@ -13,6 +13,7 @@
   </svg>
 
   <canvas id="gl" aria-hidden="true"></canvas>
+  <div class="site-grid" id="siteGrid" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>
   <div class="vignette" aria-hidden="true"></div>
   <div class="cursor" id="cursor" aria-hidden="true"><span class="cursor-dot"></span><span class="cursor-ring"></span></div>
@@ -44,11 +45,17 @@
   </header>
 
   <div class="menu" id="menu" hidden>
-    <nav aria-label="Mobile">
+    <nav class="menu-index" aria-label="Mobile and tablet">
+      <a href="/">Home</a>
+      <details class="menu-products" open>
+        <summary>Products <span class="menu-count" aria-hidden="true">(+2)</span></summary>
+        <div class="menu-product-links">
+          <a href="/nexcon">NexCon-03</a>
+          <a href="/kronig">Kronig</a>
+          <a href="/products">View all products</a>
+        </div>
+      </details>
       <a href="/technology">Technology</a>
-      <a href="/products">Products</a>
-      <a class="sub" href="/nexcon">NexCon-03</a>
-      <a class="sub" href="/kronig">Kronig</a>
       <a href="/about">About us</a>
       <a href="/contact">Request access</a>
     </nav>

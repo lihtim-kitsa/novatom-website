@@ -58,7 +58,7 @@ export class Field {
     this.gl = gl;
 
     this.state = {
-      a: 5, b: 5, m: 0, intro: 0, rot: 0, rotX: 0, scale: 1, vel: 0, offsetX: 0, offsetY: 0,
+      a: 8, b: 8, m: 0, intro: 0, rot: 0, rotX: 0, scale: 1, vel: 0, offsetX: 0, offsetY: 0,
       clear: [-1, -1, 0.35, 0.35], clearK: 0, matA: 0, matB: 0, matMix: 0, fit: 1,
       ripple: 0, dust: 0, burst: 0, twist: 0, par: [0, 0],
     };
@@ -245,6 +245,7 @@ export class Field {
     gl.uniform1f(L.uM, s.m);
     gl.uniform1f(L.uRotX, s.rotX);
     gl.uniform1f(L.uRipple, s.ripple);
+    gl.uniform1f(L.uWaferBoundary, s.waferBoundary ?? 1);
     gl.uniform1f(L.uDust, s.dust);
     gl.uniform1f(L.uBurst, s.burst);
     gl.uniform1f(L.uTwist, s.twist);
