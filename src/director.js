@@ -40,14 +40,13 @@ export function createDirector(env) {
   let anchors = [];
   let coreBox = null;
   let crystalBox = null;
+  let markBox = null;
   let mobileBox = null;
   let loopCopy = null;
 
-  let lastUi = -1;
-  let lastCue = -1;
-  let chromeHold = false;
-  let openDir = 1;
-  let openP = 1;   // opener progress 0..1, set by the click-triggered tween: the single source for crystal, nav and headline
+  let heroMark = null;
+  let heroTrack = null;
+  let startupProgress = 1;
   let page = 'home';
   const mobile = () => innerWidth <= 820;
 
@@ -78,16 +77,24 @@ export function createDirector(env) {
       const rect = document.querySelector(selector)?.getBoundingClientRect();
       return rect?.height ? { top: rect.top + y, left: rect.left, width: rect.width, height: rect.height } : null;
     };
+    heroMark = sceneBox('.hero-signature img');
+    const track = document.querySelector('.hero-track');
+    const hero = document.getElementById('top');
+    heroTrack = track && hero ? box(track) : null;
+    if (heroTrack) {
+      heroTrack.travel = getComputedStyle(hero).position === 'sticky' ? Math.max(0, heroTrack.h - hero.offsetHeight) : 0;
+      if (heroMark) heroMark.top -= clamp(y - heroTrack.top, 0, heroTrack.travel);
+    }
     coreBox = sceneBox('#coreSvg');
     crystalBox = sceneBox('[data-crystal-scene]');
+    markBox = sceneBox('[data-mark-scene]');
     mobileBox = sceneBox('.mobile-scene');
     Object.keys(geo).forEach((k) => delete geo[k]);
     ['top', 'space', 'loop', 'explore'].forEach((id) => { const el = document.getElementById(id); if (el) geo[id] = box(el); });
     geo.page = document.documentElement.scrollHeight;
     geo.sections = {};
     $$('main section[id]').forEach((el) => { geo.sections[el.id] = box(el); });
-    const opener = document.getElementById('opener');
-    if (opener) { geo.opener = box(opener); geo.sections.top = geo.opener; geo.top = geo.opener; }
+    if (heroTrack) geo.sections.top = heroTrack;
     Object.assign(geo, geo.sections); // flat access for tests: geo.kronig.top
 
     anchors = [];
@@ -128,21 +135,26 @@ export function createDirector(env) {
     return P;
   }
 
-  function homeTarget(y) {
+  function homeTarget(y, showWordmark) {
     const vh = innerHeight, mob = mobile();
+    if (y >= vh * .08) startupProgress = 1;
     const hx = 0, hy = mob ? -0.35 : -1.95;
     const phoneFit = Math.min(1, innerWidth / vh / 0.46);
     const heroScale = mob ? 1.02 * phoneFit : 0.93;
     const lx = mob ? 0 : 3.2, ly = mob ? 2.3 : 0;
     const T = { a: 8, b: 8, m: 0, sc: heroScale, ox: hx, oy: hy, op: 1, rp: 0.55, du: 1, cl: mob ? [-1, -1, 1, 0.15] : [-1, -1, 0.4, 0.35], ck: 0.05, lp: 0, sp: 0, da: 0, sb: 0 };
     const spaceTop = geo.space.top, spaceH = geo.space.h, loopTop = geo.loop.top;
+    const travel = heroTrack?.travel || vh;
+    const mission = sstep(travel * .38, travel * .74, y);
+    const exit = sstep(travel, spaceTop, y);
+    T.hm = mission;
+    T.hp = sstep(travel * .11, travel * .35, y) * (1 - sstep(travel * .36, travel * .72, y));
 
     if (y < spaceTop) {
-      // hero: the crystal breathes forward a little as you leave
-      const h = clamp(y / spaceTop);
-      T.sc = lerp(heroScale, 1.85, h);
-      T.ox = lerp(hx, hx * 0.55, h);
-      T.ck = lerp(0.05, 0.55, h);
+      T.sc = lerp(heroScale * .87, 2.1, exit);
+      T.oy = lerp(mob ? .2 : .45, hy, exit);
+      T.op = lerp(1 - .82 * mission, 1, exit);
+      T.ck = lerp(.16 * mission, .5, exit);
     } else {
       // space: dive into the lattice, then dissolve into the search space
       const sp = clamp((y - spaceTop) / (spaceH - vh));
@@ -165,24 +177,31 @@ export function createDirector(env) {
       T.sb = sstep(0.42, 0.58, sp);
     }
 
-    // opener: at the top the points spell the wordmark; scrolling peels them into the crystal and brings the page in
-    T.ui = 1;
-    T.cue = 0;
-    if (document.documentElement.classList.contains('has-opener')) {
-      const o = openP;          // already eased by the tween: fast start, soft landing
-      const m7 = o;
-      // scale so the wordmark (11.5 scene units wide) spans about 78% of the viewport at any aspect ratio
-      const aspect = innerWidth / innerHeight;
-      const fit = Math.max(0.5, Math.min(1, aspect / 1.75));
-      const scText = (10.2 * aspect) / (11.5 * fit);
-      if (m7 < 1) { T.a = 7; T.b = 8; T.m = 0.16 + 0.68 * m7; }   // 0.16..0.84 is the shader's live range: no dead zone at the start
-      T.sc = lerp(scText, T.sc, m7) * (1 + 0.3 * Math.sin(Math.PI * o));   // the camera pushes in through the vortex
-      T.ox = lerp(0, T.ox, m7); T.oy = lerp(0, T.oy, m7);
-      // sonar: a shock at the click, and a hard pulse as the lattice locks
-      T.rp = lerp(0.35, T.rp, m7) + (openDir > 0 && o < 0.25 ? 0.8 * Math.pow(Math.sin((Math.PI * o) / 0.25), 2) : 0) + 0.45 * Math.exp(-Math.pow((o - 0.66) / 0.1, 2));   // a soft pulse while the points converge, finished before they land
-      T.ck = lerp(0, T.ck, m7); T.du = lerp(1, T.du, m7);
-      T.ui = sstep(0.55, 0.9, m7);   // chrome arrives when the crystal has mostly formed
-      T.cue = 1 - sstep(0.0, 0.1, o);
+    // Push through the lettering, then let the emblem settle behind the mission copy.
+    if (showWordmark && heroMark && y < spaceTop) {
+      const progress = sstep(travel * .09, travel * .67, y);
+      if (progress < 1) {
+        const vw = document.documentElement.clientWidth;
+        const fit = Math.max(.5, Math.min(1, innerWidth / vh / 1.75));
+        const units = 36 * Math.tan(Math.PI / 9) / vh;
+        T.a = 7;
+        T.b = 8;
+        T.m = .16 + .68 * progress;
+        const wordmarkScale = heroMark.width * units / (11.5 * fit);
+        T.sc = lerp(wordmarkScale, T.sc, progress) + wordmarkScale * .78 * Math.sin(Math.PI * progress);
+        T.ox = lerp((heroMark.left + heroMark.width / 2 - vw / 2) * units / fit, T.ox, progress);
+        const wordmarkY = y - clamp(y - (heroTrack?.top ?? 0), 0, heroTrack?.travel ?? 0);
+        T.oy = lerp((vh / 2 - heroMark.top + wordmarkY - heroMark.height / 2) * units, T.oy, progress);
+        T.rp = lerp(.17, T.rp, progress) + .45 * T.hp;
+        T.ck *= progress;
+        if (startupProgress < 1) {
+          T.a = 8;
+          T.b = 7;
+          T.m = .16 + .68 * startupProgress;
+          T.sc *= lerp(.65, 1, startupProgress);
+          T.rp = lerp(.48, T.rp, startupProgress);
+        }
+      }
     }
 
     // entering the loop: settle the cloud into the loop pose
@@ -240,11 +259,11 @@ export function createDirector(env) {
   }
 
   /** @returns the target scene for this scroll position */
-  function target(y) {
+  function target(y, showWordmark) {
     const yc = y + innerHeight * 0.5;
     if (page === 'home' && geo.loop && geo.space) {
       const loopEnd = geo.loop.top + geo.loop.h - innerHeight * 0.5;
-      if (yc <= loopEnd) return homeTarget(y);
+      if (yc <= loopEnd) return homeTarget(y, showWordmark);
       const P = anchorPose(y);
       frameMobileScene(P, y);
       P.lp = 1; P.sp = 1; P.da = 0; P.sb = 1;
@@ -252,8 +271,9 @@ export function createDirector(env) {
     }
     const P = anchorPose(y);
     frameMobileScene(P, y);
-    if (crystalBox && (P.a === 11 || P.b === 11)) {
-      const rect = crystalBox;
+    const visualBox = P.a === 11 || P.b === 11 ? crystalBox : markBox;
+    if (visualBox) {
+      const rect = visualBox;
       const top = rect.top - y;
       const vh = innerHeight, vw = document.documentElement.clientWidth;
       const fit = Math.max(0.5, Math.min(1, innerWidth / vh / 1.75));
@@ -278,9 +298,8 @@ export function createDirector(env) {
 
   /** advance one frame; writes straight into the field's state */
   function update(y, dt, clock, field, pointerN) {
-    const T = target(y);
-    // during the opener the camera follows more tightly, so it has already arrived when the morph ends (no drifting at the last moment)
-    const k = 1 - Math.exp(-dt * (document.documentElement.classList.contains('has-opener') ? 13 : 7));
+    const T = target(y, Boolean(field?.hasWordmark));
+    const k = 1 - Math.exp(-dt * (T.a === 7 ? 13 : 7));
     D.sc = lerp(D.sc, T.sc, k); D.ox = lerp(D.ox, T.ox, k); D.oy = lerp(D.oy, T.oy, k);
     D.op = lerp(D.op, T.op, k); D.rp = lerp(D.rp, T.rp, k); D.du = lerp(D.du, T.du, k);
     D.ck = lerp(D.ck, T.ck, k);
@@ -293,27 +312,6 @@ export function createDirector(env) {
     // pointer parallax tilts the whole structure
     D.rotY = lerp(D.rotY, (pointerN.x - 0.5) * 0.7, 1 - Math.exp(-dt * 3));
     D.rotX = lerp(D.rotX, (pointerN.y - 0.5) * 0.35, 1 - Math.exp(-dt * 3));
-
-    // page chrome fades in with the opener; everywhere else it is simply visible
-    const ui = T.ui === undefined ? 1 : T.ui;
-    if (!chromeHold && Math.abs(ui - lastUi) > 0.003) {
-      const root = document.documentElement;
-      // written straight onto the three elements: changing a variable on <html> would restyle the whole page every frame
-      const done = ui >= 0.999;
-      document.querySelectorAll('.nav, .rail, .hero-copy').forEach((el) => {
-        el.style.opacity = done ? '1' : Math.max(ui, 0.012).toFixed(3);   // never near 0: below about 0.4% the browser skips drawing it, and the first real paint of the headline is a 300 ms stall mid-morph
-        if (el.classList.contains('hero-copy')) el.style.transform = done ? 'none' : `translateY(${((1 - ui) * 28).toFixed(1)}px)`;
-      });
-      root.classList.toggle('ui-off', ui < 0.25);
-      lastUi = ui;
-    }
-    const cue = T.cue === undefined ? 0 : T.cue;
-    if (Math.abs(cue - lastCue) > 0.003) {
-      const root = document.documentElement;
-      root.style.setProperty('--cue', cue.toFixed(3));
-      root.classList.toggle('cue-off', cue < 0.05);
-      lastCue = cue;
-    }
 
     if (field) {
       const s = field.state;
@@ -331,15 +329,16 @@ export function createDirector(env) {
       s.rot = spin + D.rotY;
       s.rotX = D.rotX;
       s.par[0] = D.rotY; s.par[1] = D.rotX;
-      s.twist = D.a === 7 ? 1 : 0;
+      s.twist = D.a === 7 || D.b === 7 ? 1 : 0;
     }
     return { T, D };
   }
 
-  function setOpen(p) { openP = clamp(p); }
-  function setDir(d) { openDir = d; }
-  /** Keep the chrome fully drawn while preparing the wordmark transition. */
-  function holdChrome(v) { chromeHold = v; if (!v) lastUi = -1; }
-
-  return { rebuild, update, setOpen, setDir, holdChrome, geo, get anchors() { return anchors; }, get D() { return D; } };
+  return {
+    rebuild, update, geo,
+    setStartup(progress) { startupProgress = progress; },
+    get startup() { return startupProgress; },
+    get anchors() { return anchors; },
+    get D() { return D; },
+  };
 }

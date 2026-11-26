@@ -34,9 +34,10 @@ export class Field {
    * @param {HTMLCanvasElement} canvas
    * @param {{count:number, latCount:number, dprMax:number, fps:number}} opts
    */
-  constructor(canvas, { count, latCount, dprMax, fps, bonds, wordmark = true }) {
+  constructor(canvas, { count, latCount, dprMax, fps, bonds, wordmark = true, wordmarkImage }) {
     this.wantBonds = !!bonds;
     this.hasWordmark = wordmark;
+    this.wordmarkImage = wordmarkImage;
     this.canvas = canvas;
     this.count = count;
     this.latCount = latCount;
@@ -165,7 +166,10 @@ export class Field {
       attr('aLat0', lat0, 3); attr('aLat1', lat1, 3); attr('aLat2', lat2, 3);
       attr('aClass', cls, 1); attr('aSpec', spec, 3);
     }
-    if (this.hasWordmark) attr('aTxt', buildWordmark(N, typeof this.hasWordmark === 'string' ? { text: this.hasWordmark } : undefined), 3);
+    if (this.hasWordmark) attr('aTxt', buildWordmark(N, {
+      text: typeof this.hasWordmark === 'string' ? this.hasWordmark : undefined,
+      image: this.wordmarkImage,
+    }), 3);
 
     this.ebos = null;
     if (lat?.bonds) {

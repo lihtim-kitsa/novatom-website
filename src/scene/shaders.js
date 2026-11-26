@@ -150,9 +150,12 @@ vec3 orbits() {
   return rotZ(tilt) * rotX(1.1) * v;
 }
 
-// state 7: 70% of the points spell the name, 20% circle it on atomic orbits, 10% are far dust that gives depth
+const float wordmarkOrbitEnd = 0.10;
+const float wordmarkDustEnd = 0.13;
+
+// State 7 reserves most points for readable lettering.
 vec3 wordmark() {
-  if (gS.y < 0.2) {
+  if (gS.y < wordmarkOrbitEnd) {
     float id = floor(gS.w * 2.999);
     float dir = mod(id, 2.0) < 0.5 ? 1.0 : -1.0;
     float th = gS.x * 6.2831853 + gT * (0.30 + 0.10 * id) * dir;
@@ -160,13 +163,8 @@ vec3 wordmark() {
     float roll = id < 0.5 ? 0.0 : (id < 1.5 ? 0.30 : -0.30);
     return rotZ(roll) * rotX(0.95) * v;
   }
-  if (gS.y < 0.3) return cloud();
+  if (gS.y < wordmarkDustEnd) return cloud();
   return aTxt + flow(aTxt * 1.3, gT) * 0.016;
-}
-
-// An illustrative atom: volumetric nucleus, faceted cage and three orbital trails.
-vec3 orbitPlane(vec3 p, float id) {
-  return rotZ(-0.45 + id * 1.05) * rotX(0.93 + id * 0.27) * p;
 }
 
 vec2 waferXY() {
@@ -207,29 +205,36 @@ vec3 coreLoop() {
   return ring + grain * (gS.y < 0.17 ? 0.32 : 0.12) + vec3(0.0, 0.0, depth + 0.35 * sin(angle));
 }
 
-vec3 atomFigure() {
-  float group = gS.y;
-  vec3 direction = normalize(hash3(gS.x * 8123.0) - 0.50001);
-  if (group < 0.29) {
-    return direction * pow(gS.z, 0.65) * 1.65 + 0.05 * flow(direction, gT);
+// NovAtom's chrome symbol, translated from SVG coordinates into scene units.
+const vec3 brandNodes[6] = vec3[6](
+  vec3(-3.08, 1.10, 0.12), vec3(0.0, 2.42, -0.45),
+  vec3(-0.88, -1.98, 0.42), vec3(2.42, -3.30, -0.16),
+  vec3(3.08, 0.0, 0.38), vec3(1.32, 3.30, 0.16)
+);
+const float brandRadii[6] = float[6](0.88, 0.88, 0.88, 0.715, 0.935, 0.385);
+const ivec2 brandLinks[5] = ivec2[5](
+  ivec2(0, 1), ivec2(1, 4), ivec2(0, 2), ivec2(2, 4), ivec2(2, 3)
+);
+
+bool brandStrand() { return gS.x < 0.32; }
+int brandNode() {
+  if (gS.w > 0.96) return 5;
+  return min(4, int(gS.w / 0.192));
+}
+vec3 brandFigure() {
+  vec3 direction = normalize(hash3(gS.y * 8123.0) - 0.50001);
+  if (brandStrand()) {
+    ivec2 endpoints = brandLinks[min(4, int(gS.w * 5.0))];
+    vec3 span = mix(brandNodes[endpoints.x], brandNodes[endpoints.y], gS.y);
+    return span + (hash3(gS.z * 317.0) - 0.5) * (0.19 + 0.16 * gS.z);
   }
-  if (group < 0.40) {
-    float edge = floor(gS.w * 12.0);
-    float signs = mod(edge, 4.0);
-    vec3 p = vec3(signs < 2.0 ? 1.0 : -1.0, 0.0, 0.0);
-    vec3 q = vec3(0.0, mod(signs, 2.0) < 1.0 ? 1.0 : -1.0, 0.0);
-    if (edge >= 8.0) { p = p.yzx; q = q.yzx; }
-    else if (edge >= 4.0) { p = p.zxy; q = q.zxy; }
-    return rotZ(0.22) * rotY(0.4) * mix(p, q, gS.x) * 2.15;
-  }
-  float id = floor(gS.w * 3.0);
-  float phase = gT * (0.5 + 0.07 * id) + id * 2.1;
-  float angle = group > 0.94 ? phase : gS.x * 6.2831853;
-  float radius = 3.7 + 0.35 * id;
-  vec3 orbit = vec3(cos(angle) * radius, sin(angle) * radius * 0.79, 0.0);
-  float strand = sin(angle * 11.0 + gT * 1.8) * 0.06;
-  float spread = group > 0.94 ? 0.26 : pow(gS.z, 3.0) * 0.5;
-  return orbitPlane(orbit + vec3(0.0, strand, 0.0), id) + direction * spread;
+  int node = brandNode();
+  vec3 grain = direction * pow(gS.z, 0.46) * brandRadii[node];
+  return brandNodes[node] + grain + flow(grain + float(node), gT) * 0.025;
+}
+vec3 brandInk() {
+  if (brandStrand()) return mix(uFg, uCobalt, 0.14 + 0.32 * pow(max(0.0, sin(gS.y * 14.0 - gT * 2.0)), 6.0));
+  return brandNode() >= 4 ? mix(vec3(0.06, 0.36, 1.0), uCobalt, gS.z * 0.5) : uFg;
 }
 
 const vec3 questionOrigin = vec3(-3.9, 0.0, 0.0);
@@ -332,7 +337,7 @@ vec3 statePos(int k) {
   } else if (k == 7) {
     r = wordmark();
   } else if (k == 8) {
-    r = atomFigure();
+    r = brandFigure();
   } else if (k == 9) {
     r = wafer();
   } else if (k == 10) {
@@ -340,9 +345,7 @@ vec3 statePos(int k) {
   } else if (k == 11) {
     r = mix(materialAtomPose(uMatA), materialAtomPose(uMatB), matBlend());
   } else if (k == 13) {
-    if (gS.y < 0.28) {
-      r = atomFigure() * 0.48 + vec3(1.25, 2.05, 0.9);
-    } else if (gS.y < 0.43) {
+    if (gS.y < 0.19) {
       float angle = gS.x * 6.2831853;
       vec3 orbit = vec3(cos(angle) * 7.25, sin(angle) * 1.95, 0.0);
       r = rotZ(gS.w < 0.5 ? 0.28 : -0.45) * rotX(0.35) * orbit;
@@ -365,18 +368,20 @@ float stateSize(int k) {
   if (k == 4) return aClass < 0.5 ? 0.8 : 1.35;
   if (k == 5) return aClass < 0.5 ? 0.8 : 1.3;
   if (k == 7) return 1.4;
-  if (k == 8 || k == 11) return gS.y > 0.94 ? 1.55 : 0.8;
+  if (k == 8) return brandStrand() ? 0.78 : 1.25;
+  if (k == 11) return gS.y > 0.94 ? 1.55 : 0.8;
   if (k == 9) return 0.84;
   if (k == 10) return 0.73;
   if (k == 12) return 0.75 + 0.35 * gS.y;
-  if (k == 13) return gS.y < 0.28 ? 1.5 : (gS.y < 0.43 ? 0.9 : 1.75);
+  if (k == 13) return gS.y < 0.19 ? 0.9 : 1.75;
   return aClass < 0.5 ? 0.8 : 1.1;
 }
 
 float stateAlpha(int k) {
   if (k == 3) return 1.0;
   if (k == 7 || k == 13) return 1.0;
-  if (k == 8 || k == 11) return gS.y < 0.29 ? 0.38 : (gS.y < 0.40 ? 0.28 : 0.85);
+  if (k == 8) return brandStrand() ? 0.66 : 0.94;
+  if (k == 11) return gS.y < 0.29 ? 0.38 : (gS.y < 0.40 ? 0.28 : 0.85);
   if (k == 9) return 0.92;
   if (k == 10) return gS.y > 0.85 ? 0.32 : 0.8;
   if (k == 12) {
@@ -434,17 +439,19 @@ void main() {
   float atomW = mix(float(k0 == 8), float(k1 == 8), fi);
   float materialAtomW = mix(float(k0 == 11), float(k1 == 11), fi);
   // groups inside the wordmark state
-  float ringW = txtW * step(gS.y, 0.2);
-  float dustW = txtW * step(0.2, gS.y) * step(gS.y, 0.3);
+  float ringW = txtW * (1.0 - step(wordmarkOrbitEnd, gS.y));
+  float dustW = txtW * step(wordmarkOrbitEnd, gS.y) * (1.0 - step(wordmarkDustEnd, gS.y));
+  float glyphW = txtW * step(wordmarkDustEnd, gS.y);
   float elec = step(0.985, gS.z) * ringW;                      // a few bright electrons on the orbits
   float sx = mix(-8.0, 8.0, fract(gT * 0.14));                   // a glint sweeps across the letters
-  float glint = txtW * step(0.3, gS.y) * exp(-pow((aTxt.x - sx) / 0.9, 2.0));
+  float glint = glyphW * exp(-pow((aTxt.x - sx) / 0.9, 2.0));
   size *= (1.0 - 0.35 * ringW) * (1.0 + 2.2 * elec) * (1.0 + 0.8 * glint) * (1.0 - 0.45 * dustW);
   alpha *= (1.0 - 0.45 * ringW) * (1.0 - 0.6 * dustW);
   alpha += 0.8 * elec;
-  float shimmer = txtW * (1.0 - ringW) * (1.0 - dustW);
+  float shimmer = glyphW;
   size *= 1.0 + 0.45 * shimmer * max(0.0, sin(aTxt.x * 1.5 - gT * 1.7 + aTxt.y * 0.8));
-  alpha *= 1.0 - 0.28 * shimmer * (0.5 + 0.5 * sin(gT * 2.3 + gS.x * 60.0));
+  size *= 1.0 + 0.32 * glyphW;
+  alpha *= 1.0 + glyphW * (0.26 - 0.12 * sin(gT * 2.3 + gS.x * 60.0));
 
   float surv = step(0.5, aClass);
   vec3 cls;
@@ -497,16 +504,27 @@ void main() {
   float oid = floor(gS.w * 2.999);
   vec3 orbCol = gS.y < 0.14 ? uFg : (oid < 0.5 ? uCobalt : (oid < 1.5 ? uAmber : uFg));
   col = mix(col, orbCol, orb * surv);
-  vec3 txtCol = gS.w < 0.1 ? uCobalt : uFg;                   // the wordmark: white with cobalt sparks
-  txtCol = mix(txtCol, mix(uFg, uCobalt, 0.65), step(gS.y, 0.2)); // orbits lean cobalt
-  col = mix(col, txtCol, txtW);
+  if (txtW > 0.0) {
+    float x = clamp(aTxt.x / 11.5 + 0.5, 0.0, 1.0);
+    float bands = max(
+      max(exp(-pow((x - 0.14) / 0.07, 2.0)), exp(-pow((x - 0.32) / 0.035, 2.0))),
+      max(exp(-pow((x - 0.51) / 0.06, 2.0)), exp(-pow((x - 0.86) / 0.055, 2.0)))
+    );
+    float grain = 0.82 + 0.18 * sin(aTxt.y * 230.0 + 0.4 * sin(aTxt.y * 581.0));
+    vec3 metal = mix(vec3(0.04, 0.31, 0.73), vec3(0.33, 0.74, 1.0), bands) * grain;
+    metal = mix(metal, vec3(0.69, 0.9, 1.0), 0.18 * step(0.88, gS.w));
+    // LABS sits below the gap in the hero wordmark's sampled glyphs.
+    if (aTxt.y < -0.65) metal = vec3(1.0);
+    vec3 txtCol = mix(mix(uFg, uCobalt, 0.65), metal, step(wordmarkDustEnd, gS.y));
+    col = mix(col, txtCol, txtW);
+  }
   float missingW = mix(float(k0 == 13), float(k1 == 13), fi);
   if (missingW > 0.0) {
-    vec3 missingInk = gS.y < 0.28 ? mix(uCobalt, uFg, 0.62) : (gS.y < 0.43 ? uCobalt : uFg);
+    vec3 missingInk = gS.y < 0.19 ? uCobalt : uFg;
     col = mix(col, missingInk, missingW);
-    alpha *= mix(1.0, gS.y < 0.28 ? 0.95 : (gS.y < 0.43 ? 0.28 : 0.9), missingW);
+    alpha *= mix(1.0, gS.y < 0.19 ? 0.28 : 0.9, missingW);
   }
-  col = mix(col, vec3(0.184, 0.42, 0.941), atomW * step(0.40, gS.y));
+  if (atomW > 0.0) col = mix(col, brandInk(), atomW);
   if (materialAtomW > 0.0) col = mix(col, mix(materialElement(uMatA), materialElement(uMatB), blend), materialAtomW);
   alpha *= mix(1.0, motifBond() ? 0.42 : 0.76, materialAtomW);
   size *= mix(1.0, motifBond() ? 0.76 : 1.08, materialAtomW);
@@ -565,6 +583,7 @@ void main() {
   float ry = mix(mix(uRotY, sin(gT * 0.32) * 0.45 + uPar.x, atomW + materialAtomW), uPar.x * 0.4, txtW);
   ry = mix(ry, sin(gT * 0.38) * 0.24 + uPar.x * 0.7, waferW);
   float rx = mix(0.1 + uRotX, uPar.y * 0.4, txtW);
+  rx += atomW * (0.18 * cos(gT * 0.27) + uPar.y * 0.45);
   rx += waferW * (0.14 * cos(gT * 0.38) + uPar.y * 0.6);
   ry = mix(ry, uPar.x * 0.45, coreW);
   rx = mix(rx, uPar.y * 0.45, coreW);

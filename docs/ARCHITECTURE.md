@@ -20,7 +20,6 @@ One place turns scroll position into scene state, so nothing fights over the sam
 
 - **Home** is a scripted sequence: hero crystal with ripples, a dive into the lattice, dissolve into the search space, the five-step loop on a pinned screen, then orbits behind the way-in links.
 - **Every other page** is data-driven: each `<section data-pose="...">` describes a scene pose, and the director interpolates between neighbours by scroll. See the table in [CONTENT-GUIDE.md](CONTENT-GUIDE.md).
-- The director also drives page chrome during the opener (nav, rail and headline opacity are written straight onto those three elements rather than through a CSS variable on `<html>`, because changing a variable on the root restyles the whole page every frame).
 
 ## The renderer (`src/scene/`)
 
@@ -45,21 +44,15 @@ Points are drawn with additive blending. Bond lines are a second draw pass over 
 
 The same scenes run at every tier. If frames regularly exceed the budget, the governor in `field.js` lowers resolution and point count, then turns the canvas off if needed. The document renders before WebGL initializes. The renderer polls shader-link completion where the browser supports parallel shader compilation.
 
-## The opener (`src/main.js`, `director.js`, `shaders.js`)
+## Homepage hero
 
-A direct visit to Home shows a progress counter while WebGL initializes and draws the particle wordmark. The counter follows setup milestones and has an eight-second fallback. Once revealed, the wordmark morphs into the hero crystal on a click, key press or scroll gesture, or after 1.5 seconds. Replay runs the wordmark sequence again.
+On direct visits to Home, a 0–100% counter follows WebGL setup. The curtain reveals the particle symbol, which morphs into the title. After startup, the director maps scroll position to the wordmark-to-symbol morph, so scrolling back reverses it. The title particles are sampled from the same SVG as the static fallback.
 
-State machine: `openState` is `'name'`, `'morphing'`, `'rewind'` or `'done'`.
-
-- A 2.6-second linear GSAP tween drives `openObj.p` from 0 to 1. The shader staggers each point and the director coordinates the crystal, nav and headline.
-- The replay buttons (`[data-replay]`, in the hero and footer) run the tween backwards over 2.8 s with `sine.inOut`, then re-arm the opener. From another page they navigate home first.
-- The wordmark follows pointer parallax only (`uPar`), not a clock-driven spin, so it cannot drift or tilt over time.
-- `warmChrome()` runs a few frames with the nav, rail and headline faintly painted before the first reveal. A first paint of some CSS effects triggers a GPU shader compile that shows up as a visible stall mid-morph.
-- **Switch it off:** `const OPENER = false;` at the top of `src/main.js`.
+The particle symbol forms before the design-space section. The navigation and calls to action stay available during initialization and throughout the scroll sequence. The static image remains available when the renderer fails, WebGL is unavailable, or reduced motion is enabled.
 
 ## Styles
 
-`src/styles.css` holds design tokens (colour, type, spacing) and base components. `src/v2.css` is loaded after it and holds the layout and the later components (opener, rail, replay buttons, logo). Both are imported from `main.js`.
+`src/styles.css` holds design tokens (colour, type, spacing) and base components. `src/v2.css` is loaded after it and holds the layout and shared navigation. The App Router layout imports both, followed by `src/editorial.css`.
 
 ## Accessibility and fallbacks
 
@@ -72,7 +65,7 @@ State machine: `openState` is `'name'`, `'morphing'`, `'rewind'` or `'done'`.
 
 | Change | Start at |
 |---|---|
-| Opener timing | `MORPH_SECONDS`, `IDLE_SECONDS` and the rewind tween in `src/main.js`; the opener block in `src/director.js` |
+| Hero morph timing | The scroll range in `homeTarget()` in `src/director.js`. |
 | Morph look (twist, scatter) | `vortex` block after `vec3 p = mix(pA, pB, fi)` in `src/scene/shaders.js` |
 | Point counts, frame rates | `PRESETS` in `src/scene/tier.js` |
 | Page-transition wipe | `createWipe` in `src/fx.js` |

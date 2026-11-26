@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 152">
+  <defs>
+    <linearGradient id="metal" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="750" y2="0">
+      <stop stop-color="#0b4d9d"/>
+      <stop offset=".14" stop-color="#289eff"/>
+      <stop offset=".26" stop-color="#1556ad"/>
+      <stop offset=".32" stop-color="#55bdff"/>
+      <stop offset=".42" stop-color="#1254aa"/>
+      <stop offset=".51" stop-color="#35aaff"/>
+      <stop offset=".63" stop-color="#09386f"/>
+      <stop offset=".75" stop-color="#176cc2"/>
+      <stop offset=".86" stop-color="#46afff"/>
+      <stop offset="1" stop-color="#0a448c"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#metal)" font-family="Helvetica, Arial, sans-serif" font-weight="700">
+    <text x="0" y="108" font-size="146">NOVATOM</text>
+    <text x="739" y="151" font-size="42" text-anchor="end" fill="#fff">LABS</text>
+  </g>
+</svg>

@@ -13,7 +13,65 @@
 .nav .brand-mark { width: 1.45em; height: 1.45em; }
 .hero { padding: clamp(75px, 10svh, 110px) var(--edge) clamp(48px, 6svh, 80px); }
 .hero-copy { min-height: max(520px, 82svh); grid-template-columns: minmax(0,1fr) auto; }
-.hero-signature { grid-column: 1/-1; align-self: start; position: relative; }
+.hero-signature {
+  grid-column: 1 / -1;
+  grid-row: 1 / 3;
+  place-self: center;
+  position: relative;
+  top: clamp(12px, 4svh, 36px);
+  width: 90%;
+}
+.hero-signature img { display: block; width: 100%; height: auto; }
+.has-hero-particles .hero-signature img { visibility: hidden; }
+.hero-entry :is(.nav, .rail, .hero-copy, .site-grid, .grain, .vignette) { transition: opacity .55s ease; }
+.hero-entry:not(.hero-entry-reveal) :is(.nav, .rail, .hero-copy, .site-grid, .grain, .vignette) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.hero-entry:not(.hero-entry-reveal) .hero { background-image: none; }
+@media (min-height: 540px) {
+  .has-hero-particles body:has(.hero-track) { overflow-x: clip; }
+  .has-hero-particles .hero-track { min-height: calc(100svh + min(96svh, 980px)); }
+  .has-hero-particles .hero-track > .hero { position: sticky; top: 0; }
+}
+.hero-track {
+  --hero-mission: 0;
+  --hero-passage: 0;
+}
+.hero-message { display: contents; }
+.has-hero-particles .hero-copy { position: relative; }
+.has-hero-particles .hero-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: clamp(1rem, 2.5vw, 2rem);
+  text-align: center;
+  transform: translateY(calc(2rem * (1 - var(--hero-mission))));
+  opacity: var(--hero-mission);
+  pointer-events: none;
+}
+.has-hero-particles .hero-track:not(.show-hero-mission) .hero-message {
+  visibility: hidden;
+}
+.has-hero-particles .hero-message .hero-mission { grid-row: auto; max-width: min(100%, 62rem); }
+.has-hero-particles .hero-message .display {
+  font-size: clamp(2.25rem, 6.25vw, 7rem);
+  line-height: .97;
+  text-wrap: balance;
+}
+.has-hero-particles .hero-message .display .split-mask { text-align: center; }
+.has-hero-particles .hero-message .lede { margin: 1rem auto 0; max-width: 45ch; }
+.has-hero-particles .hero-message .hero-actions {
+  grid-row: auto;
+  justify-content: center;
+  margin: 0;
+}
+.has-hero-particles .show-hero-mission .hero-message .hero-actions a {
+  pointer-events: auto;
+}
 .particle-signature { position: relative; width: 100%; }
 .particle-signature img { display: block; width: 100%; height: auto; }
 .particle-signature canvas { display: none; position: absolute; inset: -50% 0 auto; width: 100%; height: 200%; pointer-events: none; }
@@ -210,7 +268,6 @@
     radial-gradient(ellipse at 54% 64%, rgba(31, 72, 158, .22), transparent 55%),
     repeating-linear-gradient(113deg, rgba(163, 181, 219, .021) 0 1px, transparent 1px 6px);
 }
-.opener-lock .hero { background: none; }
 .loop-sticky::before {
   content: "";
   position: absolute;
@@ -462,14 +519,15 @@
   overflow-wrap: anywhere;
 }
 .contact-copy p { max-width: 52ch; }
-.contact-crystal {
+.contact-mark {
   display: grid;
   justify-items: center;
   align-self: start;
   min-width: 0;
   padding: 0 var(--edge) 1.5rem;
 }
-.contact-crystal figcaption { font: 400 .8rem/1.5 var(--f-data); color: var(--mute); }
+.contact-mark svg { display: block; width: 100%; max-width: 32rem; height: auto; }
+.has-webgl-field:not(.reduced) .contact-mark svg { visibility: hidden; }
 .contact .form {
   grid-column: 2;
   grid-template-columns: minmax(0, 1fr);
@@ -511,8 +569,8 @@
 .privacy-policy p { margin-top: .75rem; }
 .privacy-policy section { border-top: 1px solid var(--hairline); padding-top: 1.2rem; }
 @media (max-width: 700px) {
-  .contact-crystal { grid-column: 1 / -1; }
-  .contact-crystal .crystal-scene { max-width: 19rem; }
+  .contact-mark { grid-column: 1 / -1; }
+  .contact-mark svg { max-width: 19rem; }
   .contact .form { grid-column: 1 / -1; }
 }
 
@@ -526,7 +584,7 @@
 }
 .nexcon-inner { width: 100%; }
 .crystal-scene { display: block; width: 100%; max-width: 48rem; aspect-ratio: 1; height: auto; justify-self: center; }
-.crystal-scene[hidden], .contact-crystal:has(canvas[hidden]) { display: none; }
+.crystal-scene[hidden] { display: none; }
 .has-webgl-field:not(.reduced) .crystal-scene { opacity: 0; }
 html.reduced body:is([data-page="nexcon"], [data-page="contact"]) #gl { visibility: hidden; }
 @media (min-width: 821px) {
@@ -576,7 +634,6 @@ html.reduced body:is([data-page="nexcon"], [data-page="contact"]) #gl { visibili
   .explore-inner { background: transparent; padding: 0; }
   .explore-list a { min-height: 48px; }
   .hero .hero-actions { gap: .65rem 1.15rem; }
-  .hero-signature { margin-top: clamp(24px, 7svh, 64px); }
   .has-webgl-field:not(.reduced) .loop-sticky { align-content: end; }
   .has-webgl-field:not(.reduced) .loop-copy .step-btn { min-height: 42px; }
 }

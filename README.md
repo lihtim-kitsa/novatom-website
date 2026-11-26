@@ -47,7 +47,7 @@ On Windows, `START-WEBSITE.bat` does the install, build and preview in one doubl
 | If you want to... | Read |
 |---|---|
 | Change wording, add a section, edit the nav or footer, add a page | [docs/CONTENT-GUIDE.md](docs/CONTENT-GUIDE.md) |
-| Understand how the scene, scroll director and opener fit together before changing motion | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Understand how the scene, scroll director and hero fit together before changing motion | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Put the site on a host and point the domain at it | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 | Run the tests, profile a stutter, or debug on one machine | [docs/TESTING.md](docs/TESTING.md) |
 | Submit a change | [CONTRIBUTING.md](CONTRIBUTING.md) |
@@ -59,7 +59,7 @@ app/                                           TypeScript routes, metadata, docu
 partials/                                      Trusted HTML fragments for the existing motion runtime.
   pages/                                       Assigns section partials to routes.
 src/
-  main.js                                      Boot, page transitions, opener, smooth scroll, nav.
+  main.js                                      Boot, page transitions, smooth scroll, nav.
   director.js                                  Turns scroll position into scene state.
   pages.js                                     Per-page behaviour: headings, the loop, the form.
   fx.js                                        Cursor, reactive type, marquee, wipe, scroll-dot rail.
@@ -80,7 +80,7 @@ next.config.ts                                 Legacy URL redirects and security
 - **Nothing in the repo is a secret.** The contact form posts to a public Formspree endpoint (the form action in `partials/s-contact.html`). Formspree form IDs are meant to be public. There are no API keys, tokens or `.env` files.
 - **Everyone gets the same design.** The OS "reduce motion" setting is deliberately ignored. A device that cannot keep up is handled by a frame-time governor that lowers the point count, not by a different layout. `?motion=reduce` exists only to test the static layout.
 - **Debug switches** are query parameters: `?debug` (on-screen stats), `?tier=off|low|mid|high` (force a GPU budget), `?motion=reduce`, `?safe` (no cursor, wipe or smooth scroll). See [docs/TESTING.md](docs/TESTING.md).
-- **The wordmark intro plays on direct visits to Home and through Replay.** Set `const OPENER = false;` in `src/main.js` to disable it.
+- **The homepage wordmark morphs into the NovAtom symbol as you scroll.** Without WebGL or with reduced motion, the wordmark stays static.
 
 ## Licence
 

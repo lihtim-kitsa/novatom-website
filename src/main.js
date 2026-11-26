@@ -10,7 +10,6 @@ import { initPageContent, createPageTicker } from './pages.js';
 gsap.registerPlugin(ScrollTrigger);
 
 const root = document.documentElement;
-const OPENER = true;   // false switches the wordmark opener off entirely (see docs/ARCHITECTURE.md)
 root.classList.add('js');
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -28,6 +27,7 @@ history.scrollRestoration = 'manual';
 let field = null, lenis = null, wipe = null, ctx = null, abort = null, rail = { setActive() {} };
 let pageTick = () => {}, marqueeTick = () => {};
 let busy = false, menuOpen = false, clock = 0, scrollVel = 0;
+let heroEntry = null;
 let currentPath = location.pathname;
 const pointerN = { x: 0.5, y: 0.5 };
 const director = createDirector({});
@@ -40,6 +40,13 @@ const env = {
   lenis: () => lenis,
 };
 
+function finishHeroEntry() {
+  heroEntry?.kill();
+  heroEntry = null;
+  director.setStartup(1);
+  root.classList.remove('hero-entry', 'hero-entry-reveal');
+}
+
 /* ------------------------------------------------------------------ WebGL, fetched after first paint */
 async function initField(onProgress) {
   // Let the document paint before probing and compiling an optional renderer.
@@ -49,21 +56,44 @@ async function initField(onProgress) {
   if (onProgress) await onProgress(25);
   if (!tierInfo) { canvas.style.display = 'none'; return null; }
   try {
-    const { Field } = await import('./scene/field.js');
+    const wordmarkImage = $('.hero-signature img') || new Image();
+    if (!wordmarkImage.src) wordmarkImage.src = '/novatom-hero.svg';
+    const [{ Field }, image] = await Promise.all([
+      import('./scene/field.js'),
+      wordmarkImage.decode().then(() => wordmarkImage, () => undefined),
+    ]);
     if (onProgress) await onProgress(60);
-    field = await new Field(canvas, tierInfo).init();
+    const heroMotion = Boolean(image) && !reduced && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const count = Math.round(tierInfo.count * (heroMotion ? (tierInfo.software ? 1.2 : 1.35) : 1));
+    const readyField = await new Field(canvas, { ...tierInfo, count, wordmark: heroMotion, wordmarkImage: image }).init();
     if (onProgress) await onProgress(90);
+    field = readyField;
+    if (heroMotion && root.classList.contains('startup-loading') && window.scrollY < 2) {
+      director.setStartup(0);
+      root.classList.add('hero-entry');
+    }
+    field.state.intro = 1;
+    if (heroMotion) {
+      root.classList.add('has-hero-particles');
+      director.rebuild();
+    }
+    director.update(window.scrollY, 1, clock, field, pointerN);
+    field.renderOnce();
     root.classList.add('has-webgl-field');
-    field.onDegrade = (what) => { if (what === 'off') { canvas.style.display = 'none'; field.disabled = true; root.classList.remove('has-webgl-field'); } };
-    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); field.lost = true; root.classList.remove('has-webgl-field'); });
+    const disableHeroParticles = () => {
+      finishHeroEntry();
+      root.classList.remove('has-webgl-field', 'has-hero-particles');
+    };
+    field.onDegrade = (what) => { if (what === 'off') { canvas.style.display = 'none'; field.disabled = true; disableHeroParticles(); } };
+    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); field.lost = true; disableHeroParticles(); });
     canvas.addEventListener('webglcontextrestored', () => location.reload());
     window.__field = field;
     const selectedMaterial = $('.mat[aria-pressed="true"]');
     if (selectedMaterial) morph(Number(selectedMaterial.dataset.mat));
-    const cyclingMaterial = $('[data-crystal-index]');
-    if (cyclingMaterial) morph(Number(cyclingMaterial.dataset.crystalIndex));
     return field;
   } catch (err) {
+    finishHeroEntry();
+    root.classList.remove('has-hero-particles');
     console.warn('WebGL setup failed, continuing without the field.', err);
     canvas.style.display = 'none';
     field = null;
@@ -100,6 +130,7 @@ function tick(time, deltaMs) {
   if (lenis) lenis.raf(time * 1000);
   const y = window.scrollY;
   const { T, D } = director.update(y, dt, clock, field, pointerN);
+  if (director.startup === 1 && root.classList.contains('hero-entry') && !root.classList.contains('hero-entry-reveal')) finishHeroEntry();
   scrollVel = D.vel;
   pageTick(T);
   rail.setActive(y, director.geo);
@@ -113,112 +144,6 @@ function tick(time, deltaMs) {
 }
 
 /* ------------------------------------------------------------------ page lifecycle */
-/* ------------------------------------------------------------------ the opener: the points spell the name until the visitor clicks */
-const MORPH_SECONDS = 2.6;
-const IDLE_SECONDS = 1.5;   // Brief signature before the editorial masthead appears.
-let openerPlayed = true;   // Replay can arm the opener when navigating home from another page.
-let openState = 'done';     // 'name' while waiting, 'morphing', then 'done'
-let openTween = null, openIdle = 0, openUnbind = null;
-const openObj = { p: 1 };
-
-function endOpener() {
-  openState = 'done';
-  root.classList.remove('opener-lock');
-  if (lenis) lenis.start();
-}
-function disarmOpener() {
-  clearTimeout(openIdle);
-  if (openUnbind) { openUnbind(); openUnbind = null; }
-}
-function startMorph() {
-  if (openState !== 'name') return;
-  openState = 'morphing';
-  disarmOpener();
-  openObj.p = 0;
-  openTween = gsap.to(openObj, { p: 1, duration: MORPH_SECONDS, ease: 'none', onUpdate: () => director.setOpen(openObj.p), onComplete: endOpener });
-}
-/** state only: the name is showing and the page cannot scroll */
-function beginOpener() {
-  openerPlayed = true;
-  openState = 'name';
-  root.classList.add('opener-lock');
-  root.style.setProperty('--ui', '0.012');
-  // Warm the chrome before revealing the wordmark transition.
-  director.holdChrome(true);
-  document.querySelectorAll('.nav, .rail, .hero-copy').forEach((el) => { el.style.opacity = '1'; if (el.classList.contains('hero-copy')) el.style.transform = 'none'; });   // hidden from the very first frame; the director then drives the chrome directly
-  openObj.p = 0;
-  director.setOpen(0);
-  window.scrollTo(0, 0);
-  if (lenis) lenis.stop();
-}
-/** Listen for the click, key, or scroll gesture that starts the morph. */
-function armOpener() {
-  if (openState !== 'name' || openUnbind) return;
-  const go = () => startMorph();
-  const key = (e) => { if (['Enter', ' ', 'ArrowDown', 'PageDown'].includes(e.key)) { e.preventDefault(); startMorph(); } };
-  const wheel = (e) => { if (e.deltaY > 6) startMorph(); };
-  addEventListener('pointerdown', go, { passive: true });
-  addEventListener('touchmove', go, { passive: true });
-  addEventListener('wheel', wheel, { passive: true });
-  addEventListener('keydown', key);
-  openUnbind = () => { removeEventListener('pointerdown', go); removeEventListener('touchmove', go); removeEventListener('wheel', wheel); removeEventListener('keydown', key); };
-  openIdle = setTimeout(startMorph, IDLE_SECONDS * 1000);
-}
-/** the replay button: the crystal condenses back into the name, and the click-to-enter screen returns */
-function replayOpener() {
-  if (busy || openState !== 'done' || !OPENER || reduced || !(field && field.hasWordmark)) return;
-  closeMenu(true);
-  openerPlayed = false;
-  if (document.body.dataset.page !== 'home') { go('/'); return; }
-  const rewind = () => {
-    openerPlayed = true;
-    openState = 'rewind';
-    root.classList.add('has-opener', 'opener-lock');
-    openObj.p = 1;
-    director.setDir(-1);   // rewinding: no click shock, the name must re-form calmly
-    director.setOpen(1);
-    if (lenis) lenis.stop();
-    openTween = gsap.to(openObj, { p: 0, duration: 2.8, ease: 'sine.inOut', onUpdate: () => director.setOpen(openObj.p), onComplete: () => { director.setDir(1); openState = 'name'; armOpener(); } });
-  };
-  if (window.scrollY > 40 && lenis) { lenis.scrollTo(0, { duration: 0.9, force: true, onComplete: rewind }); } else { window.scrollTo(0, 0); rewind(); }
-}
-document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-replay]')) { e.preventDefault(); replayOpener(); } });
-
-/** release the warm-up hold; called while the curtain still covers the page */
-async function warmChrome() {
-  if (openState !== 'name') return;
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))));
-  director.holdChrome(false);
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-}
-
-function cancelOpener() {   // left Home mid-opener
-  disarmOpener();
-  if (openTween) { openTween.kill(); openTween = null; }
-  endOpener();
-  director.setOpen(1);
-}
-
-/** the opener needs WebGL and the home page; everywhere else the chrome is simply visible */
-function applyOpener() {
-  const onHome = document.body.dataset.page === 'home';
-  const can = OPENER && !reduced && !!(field && field.hasWordmark);
-  if (!onHome) {
-    if (openState !== 'done') cancelOpener();
-    root.classList.remove('has-opener', 'ui-off', 'ui-zero', 'cue-off');
-    root.style.setProperty('--ui', '1');
-    return;
-  }
-  if (!can || openerPlayed) {
-    root.classList.remove('has-opener', 'ui-off', 'ui-zero', 'cue-off');
-    root.style.setProperty('--ui', '1');
-    director.setOpen(1);
-    return;
-  }
-  root.classList.add('has-opener');
-  beginOpener();
-}
-
 function setActiveNav() {
   const here = location.pathname.replace(/\/$/, '');
   $$('.nav-links a, #menu a, .foot nav a').forEach((a) => {
@@ -234,10 +159,6 @@ function initPage() {
   reactive.clear();
   abort = new AbortController();
   env.signal = abort.signal;
-  const signature = document.querySelector('.hero-signature');
-  if (signature && !reduced && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    abort.signal.addEventListener('abort', mountParticleSignature(signature), { once: true });
-  }
   ctx = gsap.context(() => initPageContent(env));
   director.rebuild();
   const sceneLayout = new ResizeObserver(() => director.rebuild());
@@ -255,9 +176,8 @@ function initPage() {
     }
     if (lenis) lenis.scrollTo(target, { duration: 1.8, easing: (t) => 1 - Math.pow(1 - t, 4) });
     else if (typeof target === 'number') window.scrollTo(0, target); else el.scrollIntoView();
-  });
+  }, abort.signal);
   marqueeTick = reduced ? () => {} : initMarquee(() => scrollVel);
-  applyOpener();
   setActiveNav();
   ScrollTrigger.refresh();
   director.rebuild();
@@ -285,6 +205,7 @@ async function go(href, push = true) {
   const u = new URL(href, location.href);
   if (u.pathname === currentPath && !u.hash) { lenis && lenis.scrollTo(0, { duration: 1.2 }); return; }
   busy = true;
+  finishHeroEntry();
   try {
     const html = load(u.pathname);
     await Promise.all([wipe.cover(), html]);
@@ -304,9 +225,7 @@ async function go(href, push = true) {
     director.D.rp = 0;
     initPage();
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    await warmChrome();
     await wipe.reveal();
-    armOpener();
   } catch (err) {
     console.warn('navigation fell back to a full load', err);
     location.href = u.href;
@@ -480,11 +399,9 @@ async function boot() {
     gsap.ticker.lagSmoothing(0);
     gsap.ticker.add(tick);
     initNavHide();
-    const fr = initField();
     initPage();
     root.classList.add('ready');
-    await fr;
-    if (field) gsap.to(field.state, { intro: 1, duration: 2.6, ease: 'power2.out' });
+    await initField();
     return;
   }
 
@@ -496,7 +413,6 @@ async function boot() {
   initNavHide();
   initLinks();
 
-  const directHome = document.body.dataset.page === 'home' && !location.hash;
   const startup = root.classList.contains('startup-loading');
   const count = startup ? $('#wipeCount') : null;
   let progress = 0;
@@ -519,25 +435,26 @@ async function boot() {
       requestAnimationFrame(update);
     });
   }
-  const fieldReady = initField(startup ? advance : undefined);
   initPage();
   root.classList.add('ready');
-  const f = await fieldReady;
-  const covered = root.classList.contains('startup-loading');
-  if (directHome && f && (!startup || covered) && !busy && document.body.dataset.page === 'home' && !location.hash && window.scrollY < 2) {
-    openerPlayed = false;
-    applyOpener();
-  }
-  if (covered) {
-    if (f) f.state.intro = 1;
-    await Promise.all([warmChrome(), advance(100)]);
+  const f = await initField(startup ? advance : undefined);
+  if (root.classList.contains('startup-loading')) {
+    await advance(100);
     if (root.classList.contains('startup-loading')) await wipe.reveal(.48);
     root.classList.remove('startup-loading');
-  } else {
-    if (f) gsap.to(f.state, { intro: 1, duration: 2.6, ease: 'power2.out' });
-    await warmChrome();
   }
-  armOpener();
+  if (f?.hasWordmark && director.startup < 1) {
+    const opening = { progress: 0 };
+    heroEntry = gsap.to(opening, {
+      progress: 1, delay: .42, duration: 1.55, ease: 'power2.inOut',
+      onUpdate: () => {
+        if (director.startup === 1) { finishHeroEntry(); return; }
+        director.setStartup(opening.progress);
+        if (opening.progress >= .63) root.classList.add('hero-entry-reveal');
+      },
+      onComplete: finishHeroEntry,
+    });
+  }
 }
 
 boot();

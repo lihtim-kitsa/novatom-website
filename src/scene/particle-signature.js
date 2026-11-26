@@ -79,7 +79,6 @@ function compile(gl, kind, source) {
 export function mountParticleSignature(mark) {
   const image = mark.querySelector('img');
   const canvas = mark.querySelector('canvas');
-  const isHero = mark.classList.contains('hero-signature');
   const input = new AbortController();
   const cursor = { x: 0, y: 0, strength: 0, target: 0 };
   const motion = { progress: 0 };
@@ -177,7 +176,7 @@ export function mountParticleSignature(mark) {
       });
       const draw = render;
       render = (time) => {
-        if (visible && !tween && (!isHero || !document.documentElement.classList.contains('opener-lock'))) {
+        if (visible && !tween) {
           tween = gsap.to(motion, { progress: 1, duration: 2.55, ease: 'none' });
         }
         draw(time);

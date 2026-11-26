@@ -139,14 +139,63 @@ export function createWipe(getField) {
 }
 
 /* ------------------------------------------------------------------ section rail, built from [data-rail] */
-export function buildRail(onGo) {
+export function buildRail(onGo, signal) {
   const rail = $('#rail');
   if (!rail) return { setActive() {} };
   const secs = $$('main [data-rail]');
-  rail.innerHTML = secs.map((s) => `<a href="#${s.id}"><span>${s.dataset.rail}</span></a>`).join('');
   rail.hidden = secs.length < 2;
-  const links = $$('a', rail);
-  links.forEach((a, i) => a.addEventListener('click', (e) => { e.preventDefault(); onGo(secs[i]); }));
+  rail.classList.remove('is-open');
+  rail.replaceChildren();
+  if (rail.hidden) return { setActive() {} };
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'rail-toggle';
+  button.setAttribute('aria-label', 'Toggle section selector');
+  button.setAttribute('aria-controls', 'rail-sectors');
+  button.setAttribute('aria-expanded', 'false');
+  const sectors = document.createElement('div');
+  sectors.id = 'rail-sectors';
+  sectors.className = 'rail-sectors';
+  sectors.inert = true;
+  rail.append(button, sectors);
+
+  const slice = 2 * Math.PI / secs.length;
+  const point = (angle, radius) => [64 + Math.sin(angle) * radius, 64 - Math.cos(angle) * radius];
+  const links = secs.map((section, i) => {
+    const angle = i * slice;
+    const start = angle - slice / 2 + .025, end = angle + slice / 2 - .025;
+    const shape = `M ${point(start, 58)} A 58 58 0 0 1 ${point(end, 58)} L ${point(end, 25)} A 25 25 0 0 0 ${point(start, 25)} Z`;
+    const [x, y] = point(angle, 42);
+    const link = document.createElement('a');
+    link.href = `#${section.id}`;
+    link.innerHTML = `<svg viewBox="0 0 128 128" aria-hidden="true"><path d="${shape}"/><circle cx="${x}" cy="${y}" r="3"/></svg>`;
+    const label = document.createElement('span');
+    label.textContent = section.dataset.rail;
+    link.append(label);
+    sectors.append(link);
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      setOpen(false);
+      button.focus({ preventScroll: true });
+      onGo(section);
+    });
+    return link;
+  });
+  function setOpen(open) {
+    rail.classList.toggle('is-open', open);
+    button.setAttribute('aria-expanded', String(open));
+    sectors.inert = !open;
+  }
+  button.addEventListener('click', () => setOpen(!rail.classList.contains('is-open')));
+  rail.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !rail.classList.contains('is-open')) return;
+    e.preventDefault();
+    setOpen(false);
+    button.focus({ preventScroll: true });
+  }, { signal });
+  document.addEventListener('pointerdown', e => {
+    if (!rail.contains(e.target)) setOpen(false);
+  }, { signal });
   let cur = -1;
   return {
     setActive(y, geo) {
@@ -155,7 +204,7 @@ export function buildRail(onGo) {
       secs.forEach((s, i) => { const g = geo.sections && geo.sections[s.id]; if (g && yc >= g.top) a = i; });
       if (a === cur) return;
       cur = a;
-      links.forEach((l, i) => { l.classList.toggle('is-on', i === a); if (i === a) l.setAttribute('aria-current', 'true'); else l.removeAttribute('aria-current'); });
+      links.forEach((l, i) => { l.classList.toggle('is-on', i === a); if (i === a) l.setAttribute('aria-current', 'location'); else l.removeAttribute('aria-current'); });
     },
   };
 }

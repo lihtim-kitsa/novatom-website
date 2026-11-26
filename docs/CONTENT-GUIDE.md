@@ -10,7 +10,7 @@ Which fragment holds which text:
 
 | Page | URL | Section partials |
 |---|---|---|
-| `app/page.tsx` | `/` | `s-hero`, `s-space`, `s-loop`, `s-explore` |
+| `app/page.tsx` | `/` | `s-hero`, `s-space`, `s-loop`, `s-questions`, `s-explore` |
 | `app/technology/page.tsx` | `/technology` | `s-core`, `s-ledger` |
 | `app/products/page.tsx` | `/products` | `s-products` (hero and catalog) |
 | `app/nexcon/page.tsx` | `/nexcon` | `s-nexcon`, `s-inverse` |

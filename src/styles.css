@@ -335,12 +335,51 @@ p { max-width: 38rem; }
 .display-sm { font-size: clamp(2.4rem, 5.6vw, 6rem); max-width: 13ch; }
 
 /* ------------------------------------------------------------------ section rail */
-.rail { position: fixed; right: clamp(10px, 1.6vw, 24px); top: 50%; transform: translateY(-50%); z-index: 30; display: flex; flex-direction: column; gap: 4px; }
-.rail a { position: relative; display: block; width: 22px; height: 22px; text-decoration: none; }
-.rail a::before { content: ''; position: absolute; right: 8px; top: 8px; width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid var(--mute); transition: all 0.35s var(--ease); }
-.rail a.is-on::before { background: var(--cobalt); border-color: var(--cobalt); height: 18px; top: 2px; border-radius: 3px; }
-.rail span { position: absolute; right: 26px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-family: var(--f-display); font-weight: 500; font-size: 0.82rem; opacity: 0; pointer-events: none; transition: opacity 0.2s; background: var(--bg); padding: 2px 8px; }
-.rail a:hover span, .rail a:focus-visible span { opacity: 1; }
+.rail {
+  position: fixed; right: clamp(6px, 1.1vw, 18px); top: 50%; transform: translateY(-50%);
+  z-index: 30; width: 128px; height: 128px; pointer-events: none;
+}
+.rail[hidden] { display: none; }
+.rail-toggle {
+  position: absolute; inset: 42px; z-index: 2; display: grid; place-items: center;
+  border-radius: 50%; border: 1px solid rgb(146 174 223 / .65); background: #151d2b;
+  color: #e5edff; cursor: pointer; pointer-events: auto;
+  box-shadow: 0 0 0 4px rgb(16 24 38 / .68);
+}
+.rail-toggle::before, .rail-toggle::after {
+  content: ''; grid-area: 1 / 1; width: 13px; height: 1px; background: currentColor;
+  transition: transform .28s var(--ease);
+}
+.rail-toggle::after { transform: rotate(90deg); }
+.rail.is-open .rail-toggle::before { transform: rotate(45deg); }
+.rail.is-open .rail-toggle::after { transform: rotate(135deg); }
+.rail-sectors {
+  position: absolute; inset: 0; opacity: 0; transform: scale(.32) rotate(-24deg);
+  transition: opacity .22s ease .07s, transform .36s cubic-bezier(.52,-.38,.7,.55);
+}
+.rail.is-open .rail-sectors {
+  opacity: 1; transform: scale(1) rotate(0);
+  transition: opacity .2s ease, transform .46s cubic-bezier(.18,1.55,.38,1);
+}
+.rail-sectors a { position: absolute; inset: 0; pointer-events: none; }
+.rail-sectors a:focus-visible { outline: none; }
+.rail-sectors svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.rail-sectors path { fill: #192337; stroke: #526783; stroke-width: 1; transition: fill .2s, stroke .2s; }
+.rail.is-open .rail-sectors path { pointer-events: visiblePainted; cursor: pointer; }
+.rail-sectors circle { fill: #a4b1c7; }
+.rail-sectors a.is-on path { fill: #214a96; stroke: #7eabff; }
+.rail-sectors a.is-on circle { fill: #fff; }
+.rail-sectors a:is(:hover, :focus-visible) { z-index: 1; }
+.rail-sectors a:is(:hover, :focus-visible) path { fill: #345fa7; stroke: #d6e4ff; stroke-width: 2; }
+.rail-sectors span {
+  position: absolute; right: calc(100% + .35rem); top: 50%; transform: translateY(-50%);
+  white-space: nowrap; font: 500 .82rem var(--f-display); opacity: 0;
+  transition: opacity .2s; background: var(--bg); border: 1px solid var(--line); padding: 3px 8px;
+}
+.rail.is-open .rail-sectors a:is(:hover, :focus-visible) span { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .rail-sectors, .rail-toggle::before, .rail-toggle::after { transition: none !important; }
+}
 
 /* ------------------------------------------------------------------ fidelity ladder (ledger) */
 .ladder { position: relative; margin-top: 1.1rem; padding-top: 1.3rem; --m: 0; }

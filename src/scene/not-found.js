@@ -46,7 +46,7 @@ function gridBackground(gl) {
 
 export async function mountNotFoundScene(canvas, code) {
   const field = await new Field(canvas, {
-    count: innerWidth < 700 ? 9500 : 17000, latCount: 0, dprMax: 1, fps: 30, wordmark: '404',
+    count: innerWidth < 700 ? 12000 : 22000, latCount: 0, dprMax: 1, fps: 30, wordmark: '404',
   }).init();
   const drawGrid = gridBackground(field.gl);
   if (drawGrid) field.drawBackground = () => drawGrid(field.dpr);

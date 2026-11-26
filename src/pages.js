@@ -37,6 +37,7 @@ export function initHeadings(env) {
 
 /* ------------------------------------------------------------------ per-frame DOM driven by the director (home) */
 export function createPageTicker() {
+  const heroTrack = $('.hero-track');
   const stepEls = $$('.step');
   const stepsList = $('#steps');
   const stepLive = $('#stepLive');
@@ -44,8 +45,17 @@ export function createPageTicker() {
   const bnExp = $('#bnExp');
   const NAMES = ['Define', 'Hypothesise', 'Screen', 'Make & Measure', 'Learn'];
   let activeStep = -1, lastProgress = -1, lastExp = '', lastDa = -1, lastSb = -1;
+  let lastMission = -1;
 
   return (T) => {
+    if (heroTrack) {
+      const mission = Math.round((T.hm ?? 1) * 1000) / 1000;
+      if (mission !== lastMission) {
+        heroTrack.style.setProperty('--hero-mission', mission);
+        heroTrack.classList.toggle('show-hero-mission', mission > 0);
+        lastMission = mission;
+      }
+    }
     if (stepsList) {
       const progress = Math.round(T.lp * 1000);
       if (progress !== lastProgress) {
@@ -258,39 +268,6 @@ function initExploreHover(env) {
     a.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') env.morph(parseInt(a.dataset.mat, 10)); }, { signal: env.signal });
     a.addEventListener('focus', () => env.morph(parseInt(a.dataset.mat, 10)), { signal: env.signal });
   });
-}
-
-function initContactCrystals(env) {
-  const canvas = $('[data-crystal-cycle]');
-  if (!canvas) return;
-  const caption = canvas.nextElementSibling;
-  const showCrystal = initCrystalView(canvas, env.signal);
-  const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)');
-  let index = 0, timer;
-  function show() {
-    const { label, structure } = MATERIALS[index];
-    canvas.dataset.crystalIndex = index;
-    caption.textContent = `${label} · ${structure}`;
-    showCrystal?.(index);
-    env.morph(index);
-  }
-  show();
-  if (env.reduced) return;
-
-  const observer = new IntersectionObserver(([entry]) => {
-    clearInterval(timer);
-    if (entry.intersectionRatio < .25) return;
-    timer = setInterval(() => {
-      if (document.hidden || prefersReduced.matches) return;
-      index = (index + 1) % MATERIALS.length;
-      show();
-    }, 4000);
-  }, { threshold: .25 });
-  observer.observe(canvas);
-  env.signal.addEventListener('abort', () => {
-    observer.disconnect();
-    clearInterval(timer);
-  }, { once: true });
 }
 
 /* ------------------------------------------------------------------ the core loop and its domain packs */
@@ -507,7 +484,6 @@ export function initPageContent(env) {
   initInverse(env);
   initWhyNow(env);
   initMaterials(env);
-  initContactCrystals(env);
   initExploreHover(env);
   initCore(env);
   initForm(env);
