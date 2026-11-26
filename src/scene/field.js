@@ -165,7 +165,7 @@ export class Field {
       attr('aLat0', lat0, 3); attr('aLat1', lat1, 3); attr('aLat2', lat2, 3);
       attr('aClass', cls, 1); attr('aSpec', spec, 3);
     }
-    if (this.hasWordmark) attr('aTxt', buildWordmark(N), 3);
+    if (this.hasWordmark) attr('aTxt', buildWordmark(N, typeof this.hasWordmark === 'string' ? { text: this.hasWordmark } : undefined), 3);
 
     this.ebos = null;
     if (lat?.bonds) {
@@ -250,6 +250,8 @@ export class Field {
 
   _draw(time, dt) {
     const gl = this.gl, s = this.state, L = this.loc, p = this._palette();
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    this.drawBackground?.();
     gl.useProgram(this.prog);
     gl.bindVertexArray(this.vao);
     gl.uniformMatrix4fv(L.uProj, false, this.proj);
@@ -282,7 +284,6 @@ export class Field {
     gl.uniform3f(L.uFg, p.fg[0], p.fg[1], p.fg[2]);
     gl.uniform3f(L.uAmber, p.amber[0], p.amber[1], p.amber[2]);
     gl.uniform3f(L.uCobalt, p.cobalt[0], p.cobalt[1], p.cobalt[2]);
-    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(L.uMode, 0);
     this._drawBonds(gl, L, s);
     gl.drawArrays(gl.POINTS, 0, this.drawCount);

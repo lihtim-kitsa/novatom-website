@@ -339,6 +339,18 @@ vec3 statePos(int k) {
     r = coreLoop();
   } else if (k == 11) {
     r = mix(materialAtomPose(uMatA), materialAtomPose(uMatB), matBlend());
+  } else if (k == 13) {
+    if (gS.y < 0.28) {
+      r = atomFigure() * 0.48 + vec3(1.25, 2.05, 0.9);
+    } else if (gS.y < 0.43) {
+      float angle = gS.x * 6.2831853;
+      vec3 orbit = vec3(cos(angle) * 7.25, sin(angle) * 1.95, 0.0);
+      r = rotZ(gS.w < 0.5 ? 0.28 : -0.45) * rotX(0.35) * orbit;
+      r += normalize(hash3(gS.z * 2913.0) - 0.50001) * 0.04;
+    } else {
+      float edge = pow(gS.w, 7.0);
+      r = aTxt + (hash3(gS.x * 7109.0) - 0.5) * (0.04 + 0.8 * edge);
+    }
   } else {
     r = cobaltRibbon();
   }
@@ -487,6 +499,12 @@ void main() {
   vec3 txtCol = gS.w < 0.1 ? uCobalt : uFg;                   // the wordmark: white with cobalt sparks
   txtCol = mix(txtCol, mix(uFg, uCobalt, 0.65), step(gS.y, 0.2)); // orbits lean cobalt
   col = mix(col, txtCol, txtW);
+  float missingW = mix(float(k0 == 13), float(k1 == 13), fi);
+  if (missingW > 0.0) {
+    vec3 missingInk = gS.y < 0.28 ? mix(uCobalt, uFg, 0.62) : (gS.y < 0.43 ? uCobalt : uFg);
+    col = mix(col, missingInk, missingW);
+    alpha *= mix(1.0, gS.y < 0.28 ? 0.95 : (gS.y < 0.43 ? 0.28 : 0.9), missingW);
+  }
   col = mix(col, vec3(0.184, 0.42, 0.941), atomW * step(0.40, gS.y));
   if (materialAtomW > 0.0) col = mix(col, mix(materialElement(uMatA), materialElement(uMatB), blend), materialAtomW);
   alpha *= mix(1.0, motifBond() ? 0.42 : 0.76, materialAtomW);
