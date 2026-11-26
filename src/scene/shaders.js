@@ -369,12 +369,13 @@ float stateSize(int k) {
   if (k == 9) return 0.84;
   if (k == 10) return 0.73;
   if (k == 12) return 0.75 + 0.35 * gS.y;
+  if (k == 13) return gS.y < 0.28 ? 1.5 : (gS.y < 0.43 ? 0.9 : 1.75);
   return aClass < 0.5 ? 0.8 : 1.1;
 }
 
 float stateAlpha(int k) {
   if (k == 3) return 1.0;
-  if (k == 7) return 1.0;
+  if (k == 7 || k == 13) return 1.0;
   if (k == 8 || k == 11) return gS.y < 0.29 ? 0.38 : (gS.y < 0.40 ? 0.28 : 0.85);
   if (k == 9) return 0.92;
   if (k == 10) return gS.y > 0.85 ? 0.32 : 0.8;
