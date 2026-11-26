@@ -48,13 +48,13 @@ async function initField(onProgress) {
   await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
   tierInfo = detectTier();
   window.__tier = tierInfo;
-  onProgress?.(25);
+  if (onProgress) await onProgress(25);
   if (!tierInfo) { canvas.style.display = 'none'; return null; }
   try {
     const { Field } = await import('./scene/field.js');
-    onProgress?.(60);
+    if (onProgress) await onProgress(60);
     field = await new Field(canvas, tierInfo).init();
-    onProgress?.(90);
+    if (onProgress) await onProgress(90);
     root.classList.add('has-webgl-field');
     field.onDegrade = (what) => { if (what === 'off') { canvas.style.display = 'none'; field.disabled = true; root.classList.remove('has-webgl-field'); } };
     canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); field.lost = true; root.classList.remove('has-webgl-field'); });
@@ -501,12 +501,24 @@ async function boot() {
   const directHome = document.body.dataset.page === 'home' && !location.hash;
   const startup = root.classList.contains('startup-loading');
   const count = startup ? $('#wipeCount') : null;
-  const progress = { value: 0 };
+  let progress = 0;
   function advance(value) {
     if (!count || !root.classList.contains('startup-loading')) return;
-    return gsap.to(progress, {
-      value, duration: .2, overwrite: true,
-      onUpdate: () => { count.textContent = String(Math.round(progress.value)); },
+    return new Promise(resolve => {
+      let previousTime;
+      const update = time => {
+        if (!root.classList.contains('startup-loading') || progress >= value) {
+          resolve();
+          return;
+        }
+        const elapsed = Math.min(time - (previousTime ?? time - 16), 20);
+        previousTime = time;
+        progress = Math.min(value, progress + elapsed * .16);
+        count.textContent = String(Math.floor(progress));
+        // Leave the milestone on screen for a paint before WebGL work resumes.
+        requestAnimationFrame(update);
+      };
+      requestAnimationFrame(update);
     });
   }
   const fieldReady = initField(startup ? advance : undefined);
