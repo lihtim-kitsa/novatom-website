@@ -24,5 +24,12 @@
   </script>
   <script>
     /* everyone gets the full experience; ?motion=reduce exists only so the static layout can be tested */
-    if (/[?&]motion=reduce\b/.test(location.search)) document.documentElement.classList.add('reduced');
+    var query = new URLSearchParams(location.search);
+    if (query.get('motion') === 'reduce') document.documentElement.classList.add('reduced');
+    if ((location.pathname === '/' || location.pathname === '/index.html') && !location.hash &&
+        query.get('motion') !== 'reduce' && !query.has('safe') && query.get('tier') !== 'off' &&
+        !matchMedia('(prefers-reduced-motion: reduce)').matches && location.protocol !== 'file:') {
+      document.documentElement.classList.add('startup-loading');
+      setTimeout(function () { document.documentElement.classList.remove('startup-loading'); }, 8000);
+    }
   </script>

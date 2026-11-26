@@ -43,15 +43,18 @@ const env = {
 };
 
 /* ------------------------------------------------------------------ WebGL, fetched after first paint */
-async function initField() {
+async function initField(onProgress) {
   // Let the document paint before probing and compiling an optional renderer.
   await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
   tierInfo = detectTier();
   window.__tier = tierInfo;
+  onProgress?.(25);
   if (!tierInfo) { canvas.style.display = 'none'; return null; }
   try {
     const { Field } = await import('./scene/field.js');
+    onProgress?.(60);
     field = await new Field(canvas, tierInfo).init();
+    onProgress?.(90);
     root.classList.add('has-webgl-field');
     field.onDegrade = (what) => { if (what === 'off') { canvas.style.display = 'none'; field.disabled = true; root.classList.remove('has-webgl-field'); } };
     canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); field.lost = true; root.classList.remove('has-webgl-field'); });
@@ -496,17 +499,35 @@ async function boot() {
   initLinks();
 
   const directHome = document.body.dataset.page === 'home' && !location.hash;
-  const fieldReady = initField();
+  const startup = root.classList.contains('startup-loading');
+  const count = startup ? $('#wipeCount') : null;
+  const progress = { value: 0 };
+  function advance(value) {
+    if (!count || !root.classList.contains('startup-loading')) return;
+    return gsap.to(progress, {
+      value, duration: .2, overwrite: true,
+      onUpdate: () => { count.textContent = String(Math.round(progress.value)); },
+    });
+  }
+  const fieldReady = initField(startup ? advance : undefined);
   initPage();
   root.classList.add('ready');
   const f = await fieldReady;
-  if (directHome && f && !busy && document.body.dataset.page === 'home' && !location.hash && window.scrollY < 2) {
+  const covered = root.classList.contains('startup-loading');
+  if (directHome && f && (!startup || covered) && !busy && document.body.dataset.page === 'home' && !location.hash && window.scrollY < 2) {
     openerPlayed = false;
     applyOpener();
-    await warmChrome();
-    armOpener();
   }
-  if (f) gsap.to(f.state, { intro: 1, duration: 2.6, ease: 'power2.out' });
+  if (covered) {
+    if (f) f.state.intro = 1;
+    await Promise.all([warmChrome(), advance(100)]);
+    if (root.classList.contains('startup-loading')) await wipe.reveal(.48);
+    root.classList.remove('startup-loading');
+  } else {
+    if (f) gsap.to(f.state, { intro: 1, duration: 2.6, ease: 'power2.out' });
+    await warmChrome();
+  }
+  armOpener();
 }
 
 boot();

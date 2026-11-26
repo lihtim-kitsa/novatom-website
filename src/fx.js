@@ -131,9 +131,9 @@ export function createWipe(getField) {
       return new Promise((res) => gsap.to(s, { bottom: 0, duration: 0.7, ease: 'power3.inOut', onUpdate: () => apply(100 - s.bottom), onComplete: res }));
     },
     /** curtain lifts downward and away */
-    reveal() {
+    reveal(duration = 0.85) {
       s.top = 0; s.bottom = 0;
-      return new Promise((res) => gsap.to(s, { top: 100, duration: 0.85, ease: 'power3.inOut', onUpdate: () => apply(s.top), onComplete: () => { wipe.classList.remove('is-on'); wipe.style.display = 'none'; res(); } }));
+      return new Promise((res) => gsap.to(s, { top: 100, duration, ease: 'power3.inOut', onUpdate: () => apply(s.top), onComplete: () => { wipe.classList.remove('is-nav'); wipe.style.display = 'none'; res(); } }));
     },
   };
 }

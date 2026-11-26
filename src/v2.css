@@ -31,6 +31,19 @@ html.has-cursor input, html.has-cursor textarea { cursor: text; }
 
 /* ------------------------------------------------------------------ the scanline navigation wipe */
 .wipe { position: fixed; inset: 0; z-index: 100; background: #04060b; clip-path: inset(0 0 0 0); display: none; }
+.startup-loading { overflow: hidden; }
+.startup-loading .wipe { display: grid; place-items: center; }
+.wipe-progress { display: none; }
+.startup-loading .wipe:not(.is-nav) .wipe-progress {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font: 600 clamp(3rem, 10vw, 7rem)/1 var(--f-display);
+  font-variant-numeric: tabular-nums;
+}
+.wipe-progress .brand-mark { width: 46px; height: 46px; }
+#wipeCount { min-width: 2.5ch; }
+#wipeCount::after { content: '%'; font-size: .38em; color: var(--mute); }
 .wipe-line {
   position: absolute; left: 0; right: 0; top: 0; height: 2px; background: #9db9ff; opacity: 0; will-change: transform;
   box-shadow: 0 0 22px 4px rgba(47, 107, 240, 0.9), 0 0 110px 18px rgba(47, 107, 240, 0.4);
