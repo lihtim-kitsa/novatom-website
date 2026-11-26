@@ -1,6 +1,3 @@
-import './styles.css';
-import './v2.css';
-import './editorial.css';
 import { mountParticleSignature } from './scene/particle-signature.js';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -17,6 +14,7 @@ const OPENER = true;   // false switches the wordmark opener off entirely (see d
 root.classList.add('js');
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+document.body.dataset.page = $('#main').dataset.page;
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 
 const reduced = root.classList.contains('reduced');   // only ?motion=reduce; the OS setting is deliberately ignored
@@ -298,7 +296,7 @@ async function go(href, push = true) {
     document.title = doc.title;
     const desc = doc.querySelector('meta[name="description"]');
     if (desc) $('meta[name="description"]')?.setAttribute('content', desc.content);
-    document.body.dataset.page = doc.body.dataset.page;
+    document.body.dataset.page = next.dataset.page;
     if (push) history.pushState({}, '', u.pathname + u.hash);
     currentPath = u.pathname;
     window.scrollTo(0, 0);

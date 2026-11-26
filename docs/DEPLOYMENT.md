@@ -1,29 +1,20 @@
 # Deploying the site
 
-The site is static. Visitors never run a server: the host serves the files in `dist/`. Nothing is deployed from this repository automatically; the repository being public does not publish the site.
+Next.js prerenders the content pages. Run the production build on a Next.js-compatible host to serve those pages, the legacy URL redirects, and the custom 404 response.
 
-## Build
+## Build and preview
 
 ```bash
-npm install
-npm run build      # writes the finished site to dist/
+npm ci
+npm run build
+npm run preview
 ```
 
-`dist/` is everything a host needs: seven pages (`index`, `technology`, `products`, `nexcon`, `kronig`, `about`, `contact`), `assets/`, `favicon.svg`, `og.png`, `robots.txt` and `sitemap.xml`. Use Node 20 or newer.
-
-## Cloudflare Pages (recommended: free, global, clean URLs by default)
-
-1. Pages, then Create a project, then Connect to Git and pick this repository (or "Upload assets" and drag the `dist` folder).
-2. Build command `npm run build`, output directory `dist`, Node 20 or newer.
-3. Add the custom domain `novatomlabs.com`. `public/_headers` already sets long caching for `/assets/*`.
-
-## Netlify
-
-Build command `npm run build`, publish directory `dist`. Clean URLs (`/technology`) work by default, and `public/_headers` is honoured.
+Use Node.js 20.9 or newer. The preview listens at `http://127.0.0.1:4173/`.
 
 ## Vercel
 
-Framework preset "Other", build command `npm run build`, output directory `dist`. `vercel.json` turns on clean URLs and sets caching and security headers.
+Use the Next.js framework preset and the default output directory. If the project still overrides the output directory to `dist` from the Vite deployment, clear the override before redeploying. The build command is `npm run build`.
 
 ## Before pointing the domain at it
 

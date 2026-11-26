@@ -1,4 +1,5 @@
 /* The chrome, specimen plates and type share one graphite surface. */
+.site-document, .site-fragment { display: contents; }
 :root {
   --sheet: #151513;
   --plate: #1b1b19;

@@ -4,7 +4,7 @@ A map of how the site runs, for someone about to change motion, the scene or nav
 
 ## Build
 
-Vite in multi-page mode (`appType: 'mpa'`). `vite.config.js` lists the seven pages as Rollup inputs and registers one custom plugin, `html-includes`, which expands `<!-- @include file.html -->` from `partials/`. GSAP is split into its own chunk. Output is plain static files in `dist/`.
+The Next.js App Router prerenders the TypeScript routes in `app/`. `app/site-page.tsx` expands the trusted HTML fragments in `partials/` at render time. `app/site-runtime.tsx` loads the existing browser-side GSAP and WebGL code after hydration. The motion runtime owns the fragment DOM and keeps the WebGL canvas alive across in-site transitions.
 
 ## Boot and navigation (`src/main.js`)
 
@@ -64,7 +64,7 @@ State machine: `openState` is `'name'`, `'morphing'`, `'rewind'` or `'done'`.
 ## Accessibility and fallbacks
 
 - Skip link, landmarks, `aria-current` on the rail and nav, and an `aria-live` step announcer on the loop section.
-- A `<noscript>` block in `head.html` makes the tall scroll sections flow normally and hides the canvas, so the content is readable without JavaScript.
+- A `<noscript>` block in `app/site-page.tsx` makes the tall scroll sections flow normally and hides the canvas, so the content is readable without JavaScript.
 - Opening an HTML file from disk (`file:`) shows an explanation instead of a broken page.
 - The e2e suite runs axe against every page.
 

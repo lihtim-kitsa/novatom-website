@@ -4,41 +4,29 @@ How to change what the site says and shows, without touching the WebGL code. Rea
 
 ## How a page is put together
 
-Every page is a short HTML file at the repo root. It includes shared fragments from `partials/` with `<!-- @include name.html -->` (a small Vite plugin in `vite.config.js` expands these in dev and in the build, and fragments can include other fragments).
-
-```html
-<body data-page="technology">
-  <!-- @include chrome.html -->        nav, mobile menu, scroll-dot rail, loader
-  <main id="main" data-page="technology">
-    <!-- @include s-core.html -->      one section
-    <!-- @include s-ledger.html -->
-  </main>
-  <!-- @include footer.html -->
-  <script type="module" src="/src/main.js"></script>
-</body>
-```
+Routes live in `app/` as TypeScript components. Each uses `SitePage` to render its existing HTML content from `partials/pages/`. The renderer expands `<!-- @include name.html -->` recursively and supplies the shared navigation and footer.
 
 Which fragment holds which text:
 
 | Page | URL | Section partials |
 |---|---|---|
-| `index.html` | `/` | `s-hero`, `s-space`, `s-loop`, `s-explore` |
-| `technology.html` | `/technology` | `s-core`, `s-ledger` |
-| `products.html` | `/products` | `s-products` (hero and catalog) |
-| `nexcon.html` | `/nexcon` | `s-nexcon`, `s-inverse` |
-| `kronig.html` | `/kronig` | `s-kronig` |
-| `about.html` | `/about` | `s-company-hero`, `s-whynow`, `s-model`, `s-team` |
-| `contact.html` | `/contact` | `s-contact` |
+| `app/page.tsx` | `/` | `s-hero`, `s-space`, `s-loop`, `s-explore` |
+| `app/technology/page.tsx` | `/technology` | `s-core`, `s-ledger` |
+| `app/products/page.tsx` | `/products` | `s-products` (hero and catalog) |
+| `app/nexcon/page.tsx` | `/nexcon` | `s-nexcon`, `s-inverse` |
+| `app/kronig/page.tsx` | `/kronig` | `s-kronig` |
+| `app/about/page.tsx` | `/about` | `s-company-hero`, `s-whynow`, `s-model`, `s-team` |
+| `app/contact/page.tsx` | `/contact` | `s-contact` |
 
-Shared by all pages: `head.html` (meta, social image, early scripts), `chrome.html` (nav), `footer.html`.
+Privacy content lives in `partials/pages/privacy.html`. Shared navigation and footer live in `partials/chrome.html` and `partials/footer.html`.
 
 ## Everyday edits
 
-**Change wording.** Edit the text in the partial. Partials are plain HTML, so there is nothing to compile. In dev, saving a partial reloads the page.
+**Change wording.** Edit the text in the partial. Partials are plain HTML, so there is nothing to compile. Refresh the development server page after saving a partial.
 
-**Change a page title or description.** These live in the page file itself (`<title>`, `meta name="description"`, `og:title`, `og:description`), not in a partial, so each page can differ. Keep the description under about 160 characters.
+**Change a page title or description.** Edit the route metadata in `app/page-details.ts`. Keep the description under about 160 characters.
 
-**Change the social-share image.** Replace `public/og.png` (1200 x 630). `tests/diagnostics/og.mjs` renders the home scene to that size if you want to regenerate it. The URL is set in `partials/head.html`.
+**Change the social-share image.** Replace `public/og.png` (1200 x 630). `tests/diagnostics/og.mjs` renders the home scene to that size if you want to regenerate it. The URL is set in `app/site-page.tsx`.
 
 **Change the nav.** Edit `partials/chrome.html`. The links appear twice, in the desktop header and in the mobile menu, so change both. The active link is highlighted automatically from the current URL.
 
@@ -46,7 +34,7 @@ Shared by all pages: `head.html` (meta, social image, early scripts), `chrome.ht
 
 **Animated headings.** Put `data-split` on a heading to get the masked line-rise on scroll. Add `data-react` as well (on `.display` headings) to make the letters react to the pointer.
 
-**The contact form.** Its Formspree endpoint is the form's `action` in `partials/s-contact.html`. Validation and status messages are in `initForm` in `src/pages.js`. The hidden `_gotcha` field is a honeypot. Review `privacy.html` whenever the data collected or the submission provider changes.
+**The contact form.** Its Formspree endpoint is the form's `action` in `partials/s-contact.html`. Validation and status messages are in `initForm` in `src/pages.js`. The hidden `_gotcha` field is a honeypot. Review `partials/pages/privacy.html` whenever the data collected or the submission provider changes.
 
 ## Scroll dots (the rail on the right)
 
@@ -86,9 +74,9 @@ The home page is different: its camera story (hero, dive into the lattice, the l
 
 ## Adding a page
 
-1. Copy a small existing page (`kronig.html`) to `<name>.html` and edit the title, description and `data-page`.
-2. Add a partial `partials/s-<name>.html` with at least one `<section id data-rail data-pose>`, and include it from the new page.
-3. Register the page in two places: the `pages` array in `vite.config.js` (so it is built) and the `PAGES` set in `src/main.js` (so in-site navigation uses the page transition instead of a full load).
+1. Add `app/<name>/page.tsx` using an existing route as a template, then add metadata in `app/page-details.ts`.
+2. Add `partials/pages/<name>.html` and include its content sections.
+3. Add the route to the `PAGES` set in `src/main.js` to enable the scanline transition.
 4. Add the link to `partials/chrome.html` (header and mobile menu) and, if relevant, the footer.
 5. Add the URL to `public/sitemap.xml`.
 6. Add the route to the `ROUTES` list in `tests/audit.mjs` and to the page list in `tests/e2e.mjs`.

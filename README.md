@@ -2,11 +2,11 @@
 
 Source for [novatomlabs.com](https://novatomlabs.com): the marketing site for NovAtom Labs, a company building an autonomous research-lab platform (materials and semiconductors first).
 
-It is a seven-page static site with a WebGL crystal scene that follows the visitor's scroll. There is no backend: the contact form posts to a hosted form service, and the build output is plain files that any static host can serve.
+Next.js prerenders eight content pages and a custom 404. A WebGL crystal scene follows the visitor’s scroll, and Contact posts directly to Formspree.
 
 | | |
 |---|---|
-| Build tool | [Vite](https://vite.dev) 8, multi-page |
+| Framework | [Next.js](https://nextjs.org/) 16 App Router, React 19, TypeScript |
 | Rendering | Raw WebGL2 point renderer (no Three.js) |
 | Motion | [GSAP](https://gsap.com) (ScrollTrigger, SplitText, ScrambleText) and [Lenis](https://lenis.darkroom.engineering) smooth scroll |
 | Type | Bricolage Grotesque, Newsreader, JetBrains Mono (self-hosted through Fontsource) |
@@ -14,7 +14,7 @@ It is a seven-page static site with a WebGL crystal scene that follows the visit
 
 ## Quick start
 
-You need Node.js 20 or newer.
+Use Node.js 20.9 or newer.
 
 ```bash
 git clone git@github.com:Satyagni/novatom-website.git
@@ -26,21 +26,20 @@ npm run dev          # http://127.0.0.1:5173 with hot reload
 To see the production build instead:
 
 ```bash
-npm run build        # writes the finished site to dist/
-npm run preview      # serves dist/ at http://127.0.0.1:4173
+npm run build        # writes the production build to .next/
+npm run preview      # serves the production build at http://127.0.0.1:4173
 ```
 
 On Windows, `START-WEBSITE.bat` does the install, build and preview in one double-click and opens the browser.
-
-The site must be served over http. Opening `index.html` straight from disk will not work.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Dev server with hot reload (port 5173). Editing a file in `partials/` reloads the page. |
-| `npm run build` | Production build into `dist/`. |
-| `npm run preview` | Serves `dist/` on port 4173. The tests expect this port. |
+| `npm run dev` | Next.js development server on port 5173. Refresh after editing a file in `partials/`. |
+| `npm run build` | Next.js production build. All content routes are prerendered. |
+| `npm run preview` | Starts the Next.js production server on port 4173. |
+| `npm run typecheck` | Checks the TypeScript application. |
 | `npm run test:e2e` | Runs the end-to-end suite against the preview server. Build and start the preview first. |
 
 ## Which guide to read
@@ -56,11 +55,9 @@ The site must be served over http. Opening `index.html` straight from disk will 
 ## Repository layout
 
 ```
-index.html, technology.html, products.html,    The seven pages. Each one is a thin file that
-nexcon.html, kronig.html, about.html,          includes shared head/nav/footer and its sections
-contact.html                                   from partials/.
-partials/                                      HTML fragments: head, nav (chrome), footer, and one
-                                               file per section (s-hero.html, s-space.html, ...).
+app/                                           TypeScript routes, metadata, document layout, and 404.
+partials/                                      Trusted HTML fragments for the existing motion runtime.
+  pages/                                       Assigns section partials to routes.
 src/
   main.js                                      Boot, page transitions, opener, smooth scroll, nav.
   director.js                                  Turns scroll position into scene state.
@@ -75,12 +72,12 @@ tests/
   e2e.mjs, audit.mjs                           The regression suite and the click-through audit.
   diagnostics/                                 One-off scripts used while tuning motion and performance.
 docs/                                          The guides listed above.
-vercel.json                                    Clean URLs and cache headers for Vercel.
+next.config.ts                                 Legacy URL redirects and security headers.
 ```
 
 ## Things worth knowing before you change anything
 
-- **Nothing in the repo is a secret.** The contact form posts to a public Formspree endpoint (`FORM_ENDPOINT` in `src/pages.js`). Formspree form IDs are meant to be public. There are no API keys, tokens or `.env` files.
+- **Nothing in the repo is a secret.** The contact form posts to a public Formspree endpoint (the form action in `partials/s-contact.html`). Formspree form IDs are meant to be public. There are no API keys, tokens or `.env` files.
 - **Everyone gets the same design.** The OS "reduce motion" setting is deliberately ignored. A device that cannot keep up is handled by a frame-time governor that lowers the point count, not by a different layout. `?motion=reduce` exists only to test the static layout.
 - **Debug switches** are query parameters: `?debug` (on-screen stats), `?tier=off|low|mid|high` (force a GPU budget), `?motion=reduce`, `?safe` (no cursor, wipe or smooth scroll). See [docs/TESTING.md](docs/TESTING.md).
 - **The wordmark intro plays on direct visits to Home and through Replay.** Set `const OPENER = false;` in `src/main.js` to disable it.
@@ -89,4 +86,4 @@ vercel.json                                    Clean URLs and cache headers for 
 
 No open-source licence is attached, so all rights are reserved by default: the source is public to read, not to reuse. Add a `LICENSE` file if you want to allow that.
 
-Third-party packages keep their own licences (Vite, Lenis and the Fontsource packages are MIT or OFL; GSAP is under its own free licence).
+Third-party packages keep their own licences (Next.js, React, Lenis and the Fontsource packages are MIT or OFL; GSAP is under its own free licence).

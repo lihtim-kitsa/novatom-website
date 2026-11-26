@@ -1,5 +1,5 @@
 // End-to-end suite for the multi-page site: routing, scroll scenes, resilience, accessibility, performance.
-// Run against a built preview:  npx vite preview --port 4173   then   node tests/e2e.mjs
+// Run npm run build and npm run preview before running this suite.
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 

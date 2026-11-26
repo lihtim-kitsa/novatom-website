@@ -18,7 +18,7 @@ This is the source of the NovAtom Labs marketing site, maintained by the NovAtom
 - **Keep it light.** The page has to stay smooth on an ordinary laptop and a mid-range phone. Check frame pacing (`tests/diagnostics/jank.mjs`) when you add anything that animates or paints large areas.
 - **No secrets in the repo.** The form endpoint is public by design. Do not commit API keys, tokens or `.env` files; the `.gitignore` already excludes `.env*`.
 - **Copy needs a source.** Do not add statistics, partner names, people or claims that the team has not confirmed. See the writing notes in [docs/CONTENT-GUIDE.md](docs/CONTENT-GUIDE.md).
-- **Do not commit build output or test captures.** `dist/`, `node_modules/` and `tests/shots/` are ignored.
+- **Do not commit build output or test captures.** `.next/`, `node_modules/` and `tests/shots/` are ignored.
 
 ## Commit messages
 
