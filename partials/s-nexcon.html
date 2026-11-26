@@ -1,9 +1,8 @@
-    <section class="nexcon" id="nexcon" data-rail="NexCon-03" data-pose="st:11;op:1;ox:3.6;sc:1.15;rp:.4;du:.7;cl:-1 -1 -.08 1;ck:.92" aria-labelledby="h-nexcon">
+    <section class="nexcon" id="nexcon" data-rail="NexCon-03" data-pose="st:11;op:1;rp:.35;du:.35" aria-labelledby="h-nexcon">
       <div class="nexcon-inner">
         <div class="nexcon-copy">
           <h1 id="h-nexcon" class="h2 h1" data-split>NexCon-03: autonomous discovery of compound semiconductors.</h1>
-          <div class="mobile-scene" aria-hidden="true"></div>
-          <p>NexCon-03 proposes candidate materials and predicts formation energy, band gap, dopant defect energetics and synthesisability. Uncertain candidates are escalated to first-principles calculation automatically. Select a material to see its atom-inspired visualization and lattice parameters.</p>
+          <p>NexCon-03 proposes candidate materials and predicts formation energy, band gap, dopant defect energetics and synthesisability. Uncertain candidates are escalated to first-principles calculation automatically. Select a material to see its crystal structure and lattice parameters.</p>
 
           <div class="mats" role="group" aria-label="Material families">
             <button class="mat is-on" data-mat="0" aria-pressed="true"><span class="mat-name">GaN</span><span class="mat-use">Power and RF electronics</span></button>
@@ -17,7 +16,8 @@
             <span class="struct-params" id="structParams">a = 3.19 Å, c = 5.19 Å</span>
           </p>
           <ul class="element-legend" id="elementLegend" aria-label="Element colors"></ul>
-          <p class="note">The particle atom is illustrative. Orbiting nodes identify the constituent elements. The values above describe the reference crystal structure.</p>
+          <p class="note" id="crystalNote">Four sites from the crystal lattice. Particle strands trace nearest-neighbour connections.</p>
         </div>
+        <canvas class="crystal-scene" id="nexconCrystal" data-crystal-scene width="600" height="600" role="img" aria-label="Four neighbouring atoms in wurtzite GaN" aria-describedby="crystalNote" hidden></canvas>
       </div>
     </section>

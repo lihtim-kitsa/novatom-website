@@ -106,9 +106,9 @@ export function initMarquee(getVelocity) {
   };
 }
 
-/* ------------------------------------------------------------------ the scanline wipe, also the loader */
+/* ------------------------------------------------------------------ the scanline wipe between pages */
 export function createWipe(getField) {
-  const wipe = $('#wipe'), line = $('#wipeLine'), count = $('#wipeCount');
+  const wipe = $('#wipe'), line = $('#wipeLine');
   const s = { top: 0, bottom: 0 };
   const apply = (edge) => {
     wipe.style.clipPath = `inset(${s.top}% 0 ${s.bottom}% 0)`;
@@ -134,13 +134,6 @@ export function createWipe(getField) {
     reveal() {
       s.top = 0; s.bottom = 0;
       return new Promise((res) => gsap.to(s, { top: 100, duration: 0.85, ease: 'power3.inOut', onUpdate: () => apply(s.top), onComplete: () => { wipe.classList.remove('is-on'); wipe.style.display = 'none'; res(); } }));
-    },
-    /** first visit: count up while the crystal assembles */
-    loader(ms, ready) {
-      return new Promise((res) => {
-        const o = { v: 0 };
-        gsap.to(o, { v: 100, duration: ms / 1000, ease: 'power2.inOut', onUpdate: () => { count.textContent = String(Math.round(o.v)); }, onComplete: () => { Promise.resolve(ready).then(res); } });
-      });
     },
   };
 }

@@ -82,8 +82,8 @@ vercel.json                                    Clean URLs and cache headers for 
 
 - **Nothing in the repo is a secret.** The contact form posts to a public Formspree endpoint (`FORM_ENDPOINT` in `src/pages.js`). Formspree form IDs are meant to be public. There are no API keys, tokens or `.env` files.
 - **Everyone gets the same design.** The OS "reduce motion" setting is deliberately ignored. A device that cannot keep up is handled by a frame-time governor that lowers the point count, not by a different layout. `?motion=reduce` exists only to test the static layout.
-- **Debug switches** are query parameters: `?debug` (on-screen stats), `?tier=off|low|mid|high` (force a GPU budget), `?motion=reduce`, `?safe` (no loader, cursor, wipe or smooth scroll). See [docs/TESTING.md](docs/TESTING.md).
-- **The opener has a kill switch.** Set `const OPENER = false;` in `src/main.js` and the landing page goes back to the plain hero.
+- **Debug switches** are query parameters: `?debug` (on-screen stats), `?tier=off|low|mid|high` (force a GPU budget), `?motion=reduce`, `?safe` (no cursor, wipe or smooth scroll). See [docs/TESTING.md](docs/TESTING.md).
+- **The wordmark intro is available through Replay.** Set `const OPENER = false;` in `src/main.js` to disable it.
 
 ## Licence
 

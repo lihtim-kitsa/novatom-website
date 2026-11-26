@@ -20,17 +20,16 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 
 const reduced = root.classList.contains('reduced');   // only ?motion=reduce; the OS setting is deliberately ignored
-// ?safe turns off the loader, wipe, smooth-scroll, custom cursor and overlays: for isolating a problem on one machine
+// ?safe turns off the wipe, smooth-scroll, custom cursor and overlays.
 const safe = /[?&]safe\b/.test(location.search);
 if (safe) root.classList.add('safe');
 const canvas = $('#gl');
-const tierInfo = detectTier();      // null => run without WebGL (software render, data saver, no WebGL2)
-window.__tier = tierInfo;
+let tierInfo = null;
 history.scrollRestoration = 'manual';
 
 let field = null, lenis = null, wipe = null, ctx = null, abort = null, rail = { setActive() {} };
 let pageTick = () => {}, marqueeTick = () => {};
-let firstLoad = true, busy = false, menuOpen = false, clock = 0, scrollVel = 0;
+let busy = false, menuOpen = false, clock = 0, scrollVel = 0;
 let currentPath = location.pathname;
 const pointerN = { x: 0.5, y: 0.5 };
 const director = createDirector({});
@@ -41,22 +40,27 @@ const env = {
   reduced, reactive, signal: null,
   morph: (i) => morph(i),
   lenis: () => lenis,
-  heroDelay: () => 0.45,
-  hold: !reduced,          // first visit: headline waits for the loader to lift
-  held: [],
 };
 
 /* ------------------------------------------------------------------ WebGL, fetched after first paint */
 async function initField() {
+  // Let the document paint before probing and compiling an optional renderer.
+  await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+  tierInfo = detectTier();
+  window.__tier = tierInfo;
   if (!tierInfo) { canvas.style.display = 'none'; return null; }
   try {
     const { Field } = await import('./scene/field.js');
-    field = new Field(canvas, tierInfo);
+    field = await new Field(canvas, tierInfo).init();
     root.classList.add('has-webgl-field');
     field.onDegrade = (what) => { if (what === 'off') { canvas.style.display = 'none'; field.disabled = true; root.classList.remove('has-webgl-field'); } };
     canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); field.lost = true; root.classList.remove('has-webgl-field'); });
     canvas.addEventListener('webglcontextrestored', () => location.reload());
     window.__field = field;
+    const selectedMaterial = $('.mat[aria-pressed="true"]');
+    if (selectedMaterial) morph(Number(selectedMaterial.dataset.mat));
+    const cyclingMaterial = $('[data-crystal-index]');
+    if (cyclingMaterial) morph(Number(cyclingMaterial.dataset.crystalIndex));
     return field;
   } catch (err) {
     console.warn('WebGL setup failed, continuing without the field.', err);
@@ -72,7 +76,11 @@ function morph(i) {
   if (!field) return;
   const s = field.state;
   if (morphTween && s.matB === i) return;
-  if (morphTween) { morphTween.kill(); shown = s.matMix > 0.5 ? s.matB : s.matA; }
+  if (morphTween) {
+    morphTween.kill();
+    morphTween = null;
+    shown = s.matMix > 0.5 ? s.matB : s.matA;
+  }
   if (i === shown) { s.matA = i; s.matB = i; s.matMix = 0; return; }
   s.matA = shown; s.matB = i; s.matMix = 0;
   if (reduced) { s.matA = i; s.matB = i; shown = i; field.renderOnce(); return; }
@@ -84,7 +92,9 @@ function morph(i) {
 
 /* ------------------------------------------------------------------ the frame loop */
 function tick(time, deltaMs) {
-  const dt = Math.min(deltaMs / 1000, 0.05) || 0.016;
+  if (document.hidden) return;
+  const elapsed = Math.min(deltaMs / 1000, .25) || .016;
+  const dt = Math.min(elapsed, .05);
   clock += dt;
   if (lenis) lenis.raf(time * 1000);
   const y = window.scrollY;
@@ -93,10 +103,11 @@ function tick(time, deltaMs) {
   pageTick(T);
   rail.setActive(y, director.geo);
   marqueeTick(dt);
-  if (field) {
-    canvas.style.opacity = D.op.toFixed(3);
+  if (field && !field.disabled) {
+    const opacity = D.op.toFixed(3);
+    if (canvas.style.opacity !== opacity) canvas.style.opacity = opacity;
     field.paused = D.op < 0.03;
-    if (!field.paused) field.update(clock, dt);
+    if (!field.paused) field.update(clock, elapsed);
   }
 }
 
@@ -104,7 +115,7 @@ function tick(time, deltaMs) {
 /* ------------------------------------------------------------------ the opener: the points spell the name until the visitor clicks */
 const MORPH_SECONDS = 2.6;
 const IDLE_SECONDS = 1.5;   // Brief signature before the editorial masthead appears.
-let openerPlayed = false;   // plays once per page load; returning to Home through the nav shows the normal hero
+let openerPlayed = true;   // Replay can arm the opener when navigating home from another page.
 let openState = 'done';     // 'name' while waiting, 'morphing', then 'done'
 let openTween = null, openIdle = 0, openUnbind = null;
 const openObj = { p: 1 };
@@ -131,7 +142,7 @@ function beginOpener() {
   openState = 'name';
   root.classList.add('opener-lock');
   root.style.setProperty('--ui', '0.012');
-  // draw the chrome fully for a few frames under the loader so its first rasterisation (about 300 ms) happens before the visitor can see it
+  // Warm the chrome before revealing the wordmark transition.
   director.holdChrome(true);
   document.querySelectorAll('.nav, .rail, .hero-copy').forEach((el) => { el.style.opacity = '1'; if (el.classList.contains('hero-copy')) el.style.transform = 'none'; });   // hidden from the very first frame; the director then drives the chrome directly
   openObj.p = 0;
@@ -139,7 +150,7 @@ function beginOpener() {
   window.scrollTo(0, 0);
   if (lenis) lenis.stop();
 }
-/** start listening for the click (or tap, Enter, a scroll attempt) once the loader has lifted */
+/** Listen for the click, key, or scroll gesture that starts the morph. */
 function armOpener() {
   if (openState !== 'name' || openUnbind) return;
   const go = () => startMorph();
@@ -228,6 +239,9 @@ function initPage() {
   }
   ctx = gsap.context(() => initPageContent(env));
   director.rebuild();
+  const sceneLayout = new ResizeObserver(() => director.rebuild());
+  sceneLayout.observe($('#main'));
+  abort.signal.addEventListener('abort', () => sceneLayout.disconnect(), { once: true });
   window.__geo = director.geo;
   pageTick = createPageTicker();
   rail = buildRail((el) => {
@@ -286,7 +300,6 @@ async function go(href, push = true) {
     currentPath = u.pathname;
     window.scrollTo(0, 0);
     if (lenis) lenis.scrollTo(0, { immediate: true, force: true });
-    firstLoad = false;
     director.D.rp = 0;
     initPage();
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -420,23 +433,14 @@ function initDebug() {
 async function boot() {
   const signature = document.querySelector('.foot-signature');
   if (signature && !reduced && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    mountParticleSignature(signature);
+    const prewarm = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      prewarm.disconnect();
+      mountParticleSignature(signature);
+    }, { rootMargin: '800px' });
+    prewarm.observe(signature);
   }
-  try {
-    // ask for the three families explicitly so they are really loaded, not just "ready" with nothing requested yet
-    await Promise.race([
-      Promise.all([
-        document.fonts.load('600 1em "Instrument Sans Variable"'),
-        document.fonts.load('600 1em "Bricolage Grotesque Variable"'),
-        document.fonts.load('1em "JetBrains Mono"'),
-      ]).then(() => document.fonts.ready),
-      new Promise((r) => setTimeout(r, 2500)),
-    ]);
-  } catch { /* ignore */ }
-  root.classList.add('fonts');
-  console.info('[novatom]', JSON.stringify({ tier: tierInfo && tierInfo.name, software: !!(tierInfo && tierInfo.software), renderer: tierInfo && tierInfo.renderer, reducedMotion: reduced, dpr: devicePixelRatio, cores: navigator.hardwareConcurrency, saveData: !!(navigator.connection && navigator.connection.saveData) }));
   if (/[?&]debug\b/.test(location.search)) initDebug();
-  const failsafe = setTimeout(() => { root.classList.add('ready'); $('#wipe').style.display = 'none'; }, 9000);
   wipe = createWipe(() => field);
 
   const siteGrid = $('#siteGrid');
@@ -463,10 +467,10 @@ async function boot() {
 
   if (reduced) {
     $('#wipe').style.display = 'none';
-    await initField();
     initPage();
     root.classList.add('ready');
-    clearTimeout(failsafe);
+    await initField();
+    if (field) staticRender();
     return;
   }
 
@@ -477,11 +481,9 @@ async function boot() {
     initNavHide();
     const fr = initField();
     initPage();
-    await fr;
     root.classList.add('ready');
-    env.hold = false; env.held.forEach((t) => t.play()); env.held.length = 0;
+    await fr;
     if (field) gsap.to(field.state, { intro: 1, duration: 2.6, ease: 'power2.out' });
-    clearTimeout(failsafe);
     return;
   }
 
@@ -493,22 +495,11 @@ async function boot() {
   initNavHide();
   initLinks();
 
-  // the loader doubles as the first scene: count up while WebGL downloads and compiles
   const fieldReady = initField();
   initPage();
-  await wipe.loader(1700, fieldReady);
   root.classList.add('ready');
   const f = await fieldReady;
-  applyOpener();
   if (f) gsap.to(f.state, { intro: 1, duration: 2.6, ease: 'power2.out' });
-  env.hold = false;
-  env.held.forEach((t) => t.play());
-  env.held.length = 0;
-  await warmChrome();
-  await wipe.reveal();
-  armOpener();
-  firstLoad = false;
-  clearTimeout(failsafe);
 }
 
 boot();

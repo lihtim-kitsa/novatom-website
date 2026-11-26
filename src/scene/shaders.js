@@ -19,12 +19,22 @@
  * membership, never from a scroll scalar, so any pair blends cleanly.
  */
 
-import { ELEMENT_COLORS } from './element-colors.js';
+import { ELEMENT_COLORS, MATERIAL_ELEMENTS } from './element-colors.js';
+import { MATERIALS } from './lattices.js';
+import { crystalMotif } from './crystal-view.js';
 
 const element = (symbol) => {
   const channels = ELEMENT_COLORS[symbol].slice(1).match(/../g);
   return `vec3(${channels.map((value) => (parseInt(value, 16) / 255).toFixed(4)).join(', ')})`;
 };
+
+const motifSites = MATERIALS.flatMap((material, i) => {
+  const [a, b, c] = MATERIAL_ELEMENTS[i];
+  return crystalMotif(material, material.alloy ? [b, c, a] : [a, b]);
+});
+const motifPositions = motifSites.map(({ position }) =>
+  `vec3(${position.map(value => (value * 3.55).toFixed(6)).join(', ')})`).join(', ');
+const motifColors = motifSites.map(({ color }) => element(color)).join(', ');
 
 export const vertexShader = /* glsl */ `#version 300 es
 precision highp float;
@@ -224,24 +234,36 @@ vec3 atomFigure() {
 
 const vec3 questionOrigin = vec3(-3.9, 0.0, 0.0);
 
-vec3 materialAtomPose(vec3 atom, float material) {
-  if (material < 0.5) return atom;
-  if (material < 1.5) return rotZ(-0.24) * (atom * vec3(1.08, 0.88, 1.04));
-  if (material < 2.5) return rotX(0.47) * (atom * vec3(0.87, 1.08, 1.0));
-  return rotY(0.60) * rotZ(0.28) * (atom * vec3(1.01, 0.94, 1.18));
+const vec3 motifPositions[16] = vec3[16](${motifPositions});
+const vec3 motifColors[16] = vec3[16](${motifColors});
+
+bool motifBond() { return gS.y < 0.17; }
+int motifSite() {
+  return motifBond() ? 1 + int(gS.w * 3.0) : int(gS.w * 4.0);
+}
+
+vec3 materialAtomPose(float material) {
+  int base = int(floor(material + 0.5)) * 4;
+  int site = motifSite();
+  vec3 target = motifPositions[base + site];
+  vec3 direction = normalize(hash3(gS.x * 8123.0) - 0.50001);
+  if (motifBond()) {
+    // Each strand runs along a real nearest-neighbour vector from the motif hub.
+    vec3 bond = mix(motifPositions[base], target, gS.x);
+    return bond + direction * (0.012 + 0.06 * pow(gS.z, 4.0));
+  }
+  float radius = site == 0 ? 1.08 : 0.88;
+  vec3 grain = direction * pow(gS.z, 0.5) * radius;
+  grain += 0.055 * flow(grain + float(site), gT);
+  return target + grain;
 }
 
 vec3 materialElement(float material) {
-  float elementSeed = gS.y > 0.94
-    ? (floor(gS.w * 3.0) + 0.5) / 3.0
-    : gS.w;
-  if (material < 0.5) return elementSeed < 0.5 ? ${element('Ga')} : ${element('N')};
-  if (material < 1.5) {
-    if (elementSeed < 0.5) return ${element('N')};
-    return elementSeed < 0.625 ? ${element('Al')} : ${element('Ga')};
-  }
-  if (material < 2.5) return elementSeed < 0.5 ? ${element('Si')} : ${element('C')};
-  return elementSeed < 0.333333 ? ${element('Hf')} : ${element('O')};
+  int base = int(floor(material + 0.5)) * 4;
+  vec3 color = motifColors[base + motifSite()];
+  if (!motifBond()) return color;
+  float pulse = pow(max(0.0, sin(gS.x * 9.0 - gT * 2.8)), 6.0);
+  return mix(mix(motifColors[base], color, gS.x), vec3(1.0), 0.3 + 0.45 * pulse);
 }
 
 float ribbonNoise(float t) {
@@ -316,8 +338,7 @@ vec3 statePos(int k) {
   } else if (k == 10) {
     r = coreLoop();
   } else if (k == 11) {
-    vec3 atom = atomFigure();
-    r = mix(materialAtomPose(atom, uMatA), materialAtomPose(atom, uMatB), matBlend());
+    r = mix(materialAtomPose(uMatA), materialAtomPose(uMatB), matBlend());
   } else {
     r = cobaltRibbon();
   }
@@ -370,6 +391,9 @@ void main() {
   float fi = clamp(g * 1.5 - gS.z * 0.5, 0.0, 1.0);        // per-point stagger
   fi = fi * fi * (3.0 - 2.0 * fi);
 
+  // Dwell regions are uniform across the draw. Skip the inactive scene.
+  if (g <= 0.0) k1 = k0;
+  else if (g >= 1.0) k0 = k1;
   vec3 pA = statePos(k0);
   vec3 pB = k1 == k0 ? pA : statePos(k1);
   vec3 p = mix(pA, pB, fi);
@@ -464,9 +488,9 @@ void main() {
   txtCol = mix(txtCol, mix(uFg, uCobalt, 0.65), step(gS.y, 0.2)); // orbits lean cobalt
   col = mix(col, txtCol, txtW);
   col = mix(col, vec3(0.184, 0.42, 0.941), atomW * step(0.40, gS.y));
-  col = mix(col, mix(materialElement(uMatA), materialElement(uMatB), blend), materialAtomW);
-  alpha *= 1.0 + materialAtomW * 0.22;
-  size *= 1.0 + materialAtomW * 0.12;
+  if (materialAtomW > 0.0) col = mix(col, mix(materialElement(uMatA), materialElement(uMatB), blend), materialAtomW);
+  alpha *= mix(1.0, motifBond() ? 0.42 : 0.76, materialAtomW);
+  size *= mix(1.0, motifBond() ? 0.76 : 1.08, materialAtomW);
   float waferW = mix(float(k0 == 9), float(k1 == 9), fi);
   float coreW = mix(float(k0 == 10), float(k1 == 10), fi);
   float ribbonW = mix(float(k0 == 12), float(k1 == 12), fi);
@@ -474,23 +498,27 @@ void main() {
   float edgeLight = smoothstep(-0.4, 1.0, cos(gS.w * 6.2831853));
   col = mix(col, mix(cobalt * 0.84, mix(cobalt, uFg, 0.36), edgeLight), ribbonW);
   size *= 1.0 + 0.08 * ribbonW;
-  float loopPhase = fract(0.25 - atan(p.y, p.x) / 6.2831853);
-  float trail = 1.0 - smoothstep(0.0, 0.20, fract(gT / 9.0 - loopPhase));
-  col = mix(col, mix(uCobalt * 0.50, uFg, trail * trail), coreW);
-  size *= 1.0 + coreW * trail * 0.75;
-  bool rim = gS.y < 0.18;
-  bool etched = gS.y >= 0.18 && gS.y < 0.72;
-  // Reset beyond the rim, where the traveling light is already invisible.
-  float sweepX = mix(-6.0, 6.0, fract(gT / 5.2));
-  float waferX = waferXY().x;
-  float sweep = exp(-pow((waferX - sweepX) / 0.29, 2.0));
-  float exposed = 0.55 + 0.45 * sweep;
-  vec3 waferColor = rim ? uFg * 0.74 : mix(vec3(0.08, 0.10, 0.15), uCobalt * 0.75, exposed * (etched ? 1.0 : 0.32));
-  float rimLight = 0.45 + 0.55 * gS.w;
-  waferColor *= rim ? rimLight : (gS.y >= 0.82 ? 0.52 : 1.0);
-  col = mix(col, mix(waferColor, uCobalt + vec3(0.35), sweep), waferW);
-  alpha *= mix(1.0, rim ? 0.9 : (etched ? 0.8 : 0.3), waferW);
-  size *= mix(1.0, 1.0 + sweep * 0.55, waferW);
+  if (coreW > 0.0) {
+    float loopPhase = fract(0.25 - atan(p.y, p.x) / 6.2831853);
+    float trail = 1.0 - smoothstep(0.0, 0.20, fract(gT / 9.0 - loopPhase));
+    col = mix(col, mix(uCobalt * 0.50, uFg, trail * trail), coreW);
+    size *= 1.0 + coreW * trail * 0.75;
+  }
+  if (waferW > 0.0) {
+    bool rim = gS.y < 0.18;
+    bool etched = gS.y >= 0.18 && gS.y < 0.72;
+    // Reset beyond the rim, where the traveling light is already invisible.
+    float sweepX = mix(-6.0, 6.0, fract(gT / 5.2));
+    float waferX = waferXY().x;
+    float sweep = exp(-pow((waferX - sweepX) / 0.29, 2.0));
+    float exposed = 0.55 + 0.45 * sweep;
+    vec3 waferColor = rim ? uFg * 0.74 : mix(vec3(0.08, 0.10, 0.15), uCobalt * 0.75, exposed * (etched ? 1.0 : 0.32));
+    float rimLight = 0.45 + 0.55 * gS.w;
+    waferColor *= rim ? rimLight : (gS.y >= 0.82 ? 0.52 : 1.0);
+    col = mix(col, mix(waferColor, uCobalt + vec3(0.35), sweep), waferW);
+    alpha *= mix(1.0, rim ? 0.9 : (etched ? 0.8 : 0.3), waferW);
+    size *= mix(1.0, 1.0 + sweep * 0.55, waferW);
+  }
   col += glint * vec3(0.55, 0.7, 1.0);
   float sizeSpec = mix(1.0, spec > 0.5 ? 1.0 : 1.55, w5 * (1.0 - orb));
 

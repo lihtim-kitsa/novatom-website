@@ -4,6 +4,7 @@ import { SplitText } from 'gsap/SplitText';
 import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin';
 import { MATERIALS } from './scene/lattices.js';
 import { ELEMENT_COLORS, MATERIAL_ELEMENTS } from './scene/element-colors.js';
+import { initCrystalView } from './scene/crystal-view.js';
 
 gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin);
 
@@ -24,11 +25,7 @@ export function initHeadings(env) {
       onSplit(self) {
         if (react && self.chars) env.reactive.add(self.chars);
         if (env.reduced) return undefined;
-        if (hero) {
-          const tw = gsap.from(self.lines, { yPercent: 108, duration: 1.25, ease: 'expo.out', stagger: 0.1, delay: env.hold ? 0 : env.heroDelay(), paused: env.hold });
-          if (env.hold) env.held.push(tw);
-          return tw;
-        }
+        if (hero) return undefined;
         return gsap.from(self.lines, {
           yPercent: 108, duration: 1.0, ease: 'expo.out', stagger: 0.08,
           scrollTrigger: { trigger: el, start: 'top 88%', once: true },
@@ -46,11 +43,15 @@ export function createPageTicker() {
   const space = $('#space');
   const bnExp = $('#bnExp');
   const NAMES = ['Define', 'Hypothesise', 'Screen', 'Make & Measure', 'Learn'];
-  let activeStep = -1, lastExp = '', lastDa = -1, lastSb = -1;
+  let activeStep = -1, lastProgress = -1, lastExp = '', lastDa = -1, lastSb = -1;
 
   return (T) => {
     if (stepsList) {
-      stepsList.style.setProperty('--p', T.lp.toFixed(3));
+      const progress = Math.round(T.lp * 1000);
+      if (progress !== lastProgress) {
+        stepsList.style.setProperty('--p', progress / 1000);
+        lastProgress = progress;
+      }
       const stage = T.lp * 5;
       const n = stage < 0.45 ? 0 : clamp(Math.round(stage), 1, 5);
       if (n !== activeStep) {
@@ -94,7 +95,7 @@ function initLedger(env) {
   if (ladder) gsap.set(ladder, { '--m': 1 });
 
   // the page opens already working: an estimate arrives, then a simulation supersedes it
-  const intro = gsap.timeline({ delay: env.hold ? 2.4 : 1.0, defaults: { ease: 'power2.out' } });
+  const intro = gsap.timeline({ delay: 1.0, defaults: { ease: 'power2.out' } });
   revealRow(intro, rows[0], 0);
   revealRow(intro, rows[1], 1.1);
   if (ladder) intro.to(ladder, { '--m': 2, duration: 1.0, ease: 'power2.inOut' }, 1.3);
@@ -216,6 +217,9 @@ function initMaterials(env) {
   const btns = $$('.mat');
   if (!btns.length) return;
   const nameEl = $('#structName'), paramEl = $('#structParams');
+  const note = $('#crystalNote');
+  const canvas = $('#nexconCrystal');
+  const showCrystal = canvas && initCrystalView(canvas, env.signal);
   const legend = $('#elementLegend');
   function showElements(i) {
     legend?.replaceChildren(...MATERIAL_ELEMENTS[i].map((symbol) => {
@@ -225,17 +229,22 @@ function initMaterials(env) {
       return item;
     }));
   }
-  showElements(0);
-  const info = MATERIALS.map((m) => ({ name: m.structure, params: m.params }));
-  let target = 0, hoverT = 0;
+  let target = -1, hoverT = 0;
   function select(i) {
     if (i === target) return;
     target = i;
     btns.forEach((b, j) => { b.classList.toggle('is-on', j === i); b.setAttribute('aria-pressed', String(j === i)); });
-    nameEl.textContent = info[i].name; paramEl.textContent = info[i].params;
-      showElements(i);
+    const material = MATERIALS[i];
+    nameEl.textContent = material.structure;
+    paramEl.textContent = material.params;
+    note.textContent = material.alloy
+      ? 'Four neighbouring sites in a representative Al₀.₂₅Ga₀.₇₅N lattice. The lattice parameters are estimated.'
+      : 'Four sites from the crystal lattice. Particle strands trace nearest-neighbour connections.';
+    showElements(i);
+    showCrystal?.(i);
     env.morph(i);
   }
+  select(0);
   btns.forEach((b, i) => {
     b.addEventListener('click', () => select(i), { signal: env.signal });
     b.addEventListener('focus', () => select(i), { signal: env.signal });
@@ -249,6 +258,39 @@ function initExploreHover(env) {
     a.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') env.morph(parseInt(a.dataset.mat, 10)); }, { signal: env.signal });
     a.addEventListener('focus', () => env.morph(parseInt(a.dataset.mat, 10)), { signal: env.signal });
   });
+}
+
+function initContactCrystals(env) {
+  const canvas = $('[data-crystal-cycle]');
+  if (!canvas) return;
+  const caption = canvas.nextElementSibling;
+  const showCrystal = initCrystalView(canvas, env.signal);
+  const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)');
+  let index = 0, timer;
+  function show() {
+    const { label, structure } = MATERIALS[index];
+    canvas.dataset.crystalIndex = index;
+    caption.textContent = `${label} · ${structure}`;
+    showCrystal?.(index);
+    env.morph(index);
+  }
+  show();
+  if (env.reduced) return;
+
+  const observer = new IntersectionObserver(([entry]) => {
+    clearInterval(timer);
+    if (entry.intersectionRatio < .25) return;
+    timer = setInterval(() => {
+      if (document.hidden || prefersReduced.matches) return;
+      index = (index + 1) % MATERIALS.length;
+      show();
+    }, 4000);
+  }, { threshold: .25 });
+  observer.observe(canvas);
+  env.signal.addEventListener('abort', () => {
+    observer.disconnect();
+    clearInterval(timer);
+  }, { once: true });
 }
 
 /* ------------------------------------------------------------------ the core loop and its domain packs */
@@ -465,6 +507,7 @@ export function initPageContent(env) {
   initInverse(env);
   initWhyNow(env);
   initMaterials(env);
+  initContactCrystals(env);
   initExploreHover(env);
   initCore(env);
   initForm(env);

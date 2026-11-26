@@ -1,11 +1,9 @@
 /**
  * How much WebGL this device starts with.
  *
- * Everyone gets the same scene and the same design. We no longer guess quality from a GPU's
- * name: every desktop, software-rendered browsers included, starts at the full scene, and the
- * frame-time governor in field.js steps it down only if the page genuinely stutters.
- * Phones start lighter because 40,000 glowing points is more than a phone should be asked
- * to draw, but they get the same crystal, bonds, ripples and transitions.
+ * Phones and software renderers start with fewer points, while retaining
+ * the same scenes, bonds, ripples, and transitions. The frame-time governor
+ * in field.js adjusts the budget when draws regularly exceed it.
  *
  * Returns null only when WebGL2 itself is unavailable, or ?tier=off is forced for testing.
  */
@@ -14,8 +12,8 @@ const SOFTWARE = /swiftshader|llvmpipe|software|basic render|microsoft basic|mes
 const PRESETS = {
   high: { name: 'high', count: 40000, latCount: 6000, fps: 60, bonds: true },
   mid: { name: 'mid', count: 22000, latCount: 4500, fps: 60, bonds: true },
-  // software rendering: the same full scene, drawn at half rate so the CPU stays cool
-  soft: { name: 'soft', count: 40000, latCount: 6000, fps: 30, bonds: true },
+  // Software WebGL competes with the page for CPU time.
+  soft: { name: 'soft', count: 10000, latCount: 3000, fps: 24, bonds: true },
   low: { name: 'low', count: 14000, latCount: 3500, fps: 30, bonds: true },
 };
 

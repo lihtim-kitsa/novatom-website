@@ -86,9 +86,6 @@ main, .foot { position: relative; z-index: 1; }
 p { max-width: 38rem; }
 /* SplitText line masks clip at the line box; give descenders room without moving the layout */
 .split-mask { padding-bottom: 0.16em; margin-bottom: -0.16em; }
-/* the headline and lede wait for the intro; a JS failsafe sets .ready so they can never stay hidden */
-.js:not(.ready) .display { visibility: hidden; }
-.js:not(.ready) .lede, .js:not(.ready) .hero-actions { opacity: 0; }
 .lede, .hero-actions { transition: opacity 0.9s ease 1.1s; }
 
 /* ------------------------------------------------------------------ buttons / links */

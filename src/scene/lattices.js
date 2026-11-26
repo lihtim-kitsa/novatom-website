@@ -36,8 +36,8 @@ function frac2cart(cell, f) {
 }
 
 /** Wurtzite: two interpenetrating hcp lattices, cations and anions. */
-function wurtzite() {
-  const a = 3.189, c = 5.185, u = 0.377;
+function wurtzite(a = 3.189, c = 5.185) {
+  const u = 0.377;
   const cell = hexCell(a, c);
   const basis = [
     { f: [1 / 3, 2 / 3, 0], s: 0 },
@@ -48,7 +48,7 @@ function wurtzite() {
   return { cell, basis, range: [13, 13, 9] };
 }
 
-/** 4H-SiC: stacking sequence A-B-C-B along c, Si and C per layer. */
+/** Idealized 4H-SiC: stacking sequence A-B-A-C along c, Si and C per layer. */
 function sic4h() {
   const a = 3.073, c = 10.053;
   const cell = hexCell(a, c);
@@ -127,9 +127,9 @@ export const MATERIALS = [
     id: 'algan',
     label: 'AlGaN',
     structure: 'Wurtzite alloy',
-    params: 'a ≈ 3.19 Å, c ≈ 5.19 Å, Al on cation sites',
+    params: 'a ≈ 3.17 Å, c ≈ 5.14 Å',
     use: 'Deep-UV optoelectronics',
-    build: wurtzite,
+    build: () => wurtzite(3.17, 5.14),
     alloy: 0.25,
   },
   {
@@ -191,6 +191,19 @@ function bondPairs({ positions, species }) {
     }
   }
   return new Uint32Array(out);
+}
+
+export function buildMaterialCrystal(material) {
+  const lattice = nugget({ ...material.build(), range: [3, 3, 3] }, 88);
+  const bonds = bondPairs(lattice);
+  if (material.alloy) {
+    const cations = Array.from(lattice.species.keys()).filter(i => lattice.species[i] === 0);
+    // Mix cation sites reproducibly and keep the displayed fraction near the nominal composition.
+    const siteOrder = i => Math.imul(i + 1, 2654435761) >>> 0;
+    cations.sort((a, b) => siteOrder(a) - siteOrder(b));
+    for (const i of cations.slice(0, Math.round(cations.length * material.alloy))) lattice.species[i] = 2;
+  }
+  return { ...lattice, bonds };
 }
 
 /**

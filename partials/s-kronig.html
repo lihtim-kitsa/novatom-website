@@ -1,15 +1,24 @@
     <section class="kronig" id="kronig" data-rail="Kronig" data-at=".08" data-pose="st:12;op:.85;ox:0;sc:1.08;rp:0;cl:-1 -.7 -.1 .85;ck:.7" data-at2=".4" data-pose2="st:12;op:.48;sc:1;rp:0;ck:0" aria-labelledby="h-kronig">
       <div class="kronig-inner">
         <header class="kronig-head">
-          <h1 id="h-kronig" class="h2 h1" data-split>Kronig: device simulation from plain English.</h1>
           <div class="kronig-lead">
+            <p class="kronig-label">Kronig / Device simulation</p>
+            <h1 id="h-kronig" class="h2 h1" data-split>Device simulation from plain English.</h1>
             <p>Describe your device. Kronig asks for missing details, proposes a plan for approval, then runs and validates the simulation.</p>
             <a class="textlink" href="#kronig-results">See the solver comparison</a>
             <p class="note">Desktop app for Windows, macOS and Linux. Runs on DEVSIM locally or on Synopsys Sentaurus over SSH.</p>
           </div>
+          <figure class="kronig-junction">
+            <figcaption><span>Peak electric field</span><span>2.5 µm silicon PN junction</span></figcaption>
+            <div class="junction-benchmark">
+              <dl class="junction-values" aria-label="Peak electric field by solver">
+                <div style="--field: 91.82%"><dt>DEVSIM</dt><dd><strong>101</strong> kV/cm</dd></div>
+                <div style="--field: 88.18%"><dt>Sentaurus</dt><dd><strong>97</strong> kV/cm</dd></div>
+              </dl>
+              <div class="junction-scale" aria-hidden="true"><span>0</span><span>55</span><span>110 kV/cm</span></div>
+            </div>
+          </figure>
         </header>
-
-
 
         <div class="k-grid" id="kronig-results">
           <div class="k-agree">

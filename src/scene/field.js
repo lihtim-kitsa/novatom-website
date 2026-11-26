@@ -26,11 +26,6 @@ function compile(gl, type, src) {
   const sh = gl.createShader(type);
   gl.shaderSource(sh, src);
   gl.compileShader(sh);
-  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-    const log = gl.getShaderInfoLog(sh);
-    gl.deleteShader(sh);
-    throw new Error('Shader compile failed: ' + log);
-  }
   return sh;
 }
 
@@ -66,34 +61,48 @@ export class Field {
     this.ema = 1000 / fps;
     this.frames = 0;
     this.acc = 0;
+    this.drawElapsed = 0;
     this.frozen = false;
     this.lost = false;
     this.onDegrade = null;
     this.disabled = false;
     this.paused = false;
 
-    this._program();
+  }
+
+  async init() {
+    const gl = this.gl;
+    await this._program();
     this._buffers();
     this.resize();
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);   // additive: overlapping points glow
     gl.disable(gl.DEPTH_TEST);
     gl.clearColor(0, 0, 0, 0);
+    return this;
   }
 
-  _program() {
+  async _program() {
     const gl = this.gl;
     const vs = compile(gl, gl.VERTEX_SHADER, vertexShader);
     const fs = compile(gl, gl.FRAGMENT_SHADER, fragmentShader);
     const prog = gl.createProgram();
     gl.attachShader(prog, vs);
     gl.attachShader(prog, fs);
+    const parallel = gl.getExtension('KHR_parallel_shader_compile');
     gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      throw new Error('Program link failed: ' + gl.getProgramInfoLog(prog));
+    if (parallel) {
+      while (!gl.getProgramParameter(prog, parallel.COMPLETION_STATUS_KHR)) {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      }
     }
     gl.deleteShader(vs);
     gl.deleteShader(fs);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      const log = gl.getProgramInfoLog(prog);
+      gl.deleteProgram(prog);
+      throw new Error('Program link failed: ' + log);
+    }
     gl.useProgram(prog);
     this.prog = prog;
     this.loc = {};
@@ -227,15 +236,18 @@ export class Field {
 
     // frame cap: phones draw at half rate
     this.acc += dt;
+    this.drawElapsed += dt;
     if (this.acc < this.minDt - 0.003) return;
-    const frameDt = this.acc;
-    this.acc = 0;
+    const frameDt = this.drawElapsed;
+    this.drawElapsed = 0;
+    // Keep the fractional interval so 24 fps can alternate two and three
+    // refreshes on a 60 Hz display instead of rounding down to 20 fps.
+    this.acc = Math.max(-.003, Math.min(this.acc - this.minDt, this.minDt * .5));
     this._draw(time, frameDt);
   }
 
   _draw(time, dt) {
     const gl = this.gl, s = this.state, L = this.loc, p = this._palette();
-    const t0 = performance.now();
     gl.useProgram(this.prog);
     gl.bindVertexArray(this.vao);
     gl.uniformMatrix4fv(L.uProj, false, this.proj);
@@ -272,7 +284,7 @@ export class Field {
     gl.uniform1f(L.uMode, 0);
     this._drawBonds(gl, L, s);
     gl.drawArrays(gl.POINTS, 0, this.drawCount);
-    this._adapt(dt, performance.now() - t0);
+    this._adapt(dt);
   }
 
   /**

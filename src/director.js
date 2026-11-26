@@ -38,8 +38,9 @@ export function createDirector(env) {
   };
   const geo = {};
   let anchors = [];
-  let coreSvg = null;
-  let mobileScene = null;
+  let coreBox = null;
+  let crystalBox = null;
+  let mobileBox = null;
   let loopCopy = null;
 
   let lastUi = -1;
@@ -69,12 +70,17 @@ export function createDirector(env) {
 
   function rebuild() {
     page = document.body.dataset.page || 'home';
-    coreSvg = document.getElementById('coreSvg');
-    mobileScene = document.querySelector('.mobile-scene');
     loopCopy = document.querySelector('.loop-copy');
 
     const y = window.scrollY;
     const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top + y, h: r.height }; };
+    const sceneBox = (selector) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect();
+      return rect?.height ? { top: rect.top + y, left: rect.left, width: rect.width, height: rect.height } : null;
+    };
+    coreBox = sceneBox('#coreSvg');
+    crystalBox = sceneBox('[data-crystal-scene]');
+    mobileBox = sceneBox('.mobile-scene');
     Object.keys(geo).forEach((k) => delete geo[k]);
     ['top', 'space', 'loop', 'explore'].forEach((id) => { const el = document.getElementById(id); if (el) geo[id] = box(el); });
     geo.page = document.documentElement.scrollHeight;
@@ -216,21 +222,20 @@ export function createDirector(env) {
     return T;
   }
 
-  function frameMobileScene(pose) {
-    if (!mobile() || !mobileScene) return;
-    const rect = mobileScene.getBoundingClientRect();
-    if (!rect.height) return;
-    if (rect.bottom < 0 || rect.top > innerHeight) return;
+  function frameMobileScene(pose, y) {
+    if (!mobile() || !mobileBox) return;
+    const rect = mobileBox;
+    const top = rect.top - y, bottom = top + rect.height;
+    if (bottom < 0 || top > innerHeight) return;
     const vh = innerHeight;
     const fit = Math.max(0.5, Math.min(1, innerWidth / vh / 1.75));
     const units = 36 * Math.tan(Math.PI / 9) / vh;
-    const material = page === 'nexcon';
-    const frameWeight = sstep(0, rect.height * 0.65, Math.min(rect.bottom, vh - rect.top));
-    const scale = Math.min(rect.width * units / 10.3, rect.height * units / (material ? 8.8 : 9.8)) / fit;
+    const frameWeight = sstep(0, rect.height * 0.65, Math.min(bottom, vh - top));
+    const scale = Math.min(rect.width * units / 10.3, rect.height * units / 9.8) / fit;
     pose.sc = lerp(pose.sc, scale, frameWeight);
     pose.ox = lerp(pose.ox, 0, frameWeight);
-    pose.oy = lerp(pose.oy, (vh / 2 - rect.top - rect.height / 2) * units, frameWeight);
-    pose.ck = lerp(pose.ck, material ? 0 : 0.04, frameWeight);
+    pose.oy = lerp(pose.oy, (vh / 2 - top - rect.height / 2) * units, frameWeight);
+    pose.ck = lerp(pose.ck, 0.04, frameWeight);
     pose.op = lerp(pose.op, 1, frameWeight);
   }
 
@@ -241,19 +246,30 @@ export function createDirector(env) {
       const loopEnd = geo.loop.top + geo.loop.h - innerHeight * 0.5;
       if (yc <= loopEnd) return homeTarget(y);
       const P = anchorPose(y);
-      frameMobileScene(P);
+      frameMobileScene(P, y);
       P.lp = 1; P.sp = 1; P.da = 0; P.sb = 1;
       return P;
     }
     const P = anchorPose(y);
-    frameMobileScene(P);
-    if (coreSvg && (P.a === 10 || P.b === 10)) {
-      const rect = coreSvg.getBoundingClientRect();
+    frameMobileScene(P, y);
+    if (crystalBox && (P.a === 11 || P.b === 11)) {
+      const rect = crystalBox;
+      const top = rect.top - y;
+      const vh = innerHeight, vw = document.documentElement.clientWidth;
+      const fit = Math.max(0.5, Math.min(1, innerWidth / vh / 1.75));
+      const units = 36 * Math.tan(Math.PI / 9) / vh;
+      P.ox = (rect.left + rect.width / 2 - vw / 2) * units / fit;
+      P.oy = (vh / 2 - top - rect.height / 2) * units;
+      P.sc = Math.min(rect.width, rect.height) * units / (10.5 * fit);
+      P.op *= sstep(0, rect.height * .35, Math.min(top + rect.height, vh - top));
+    }
+    if (coreBox && (P.a === 10 || P.b === 10)) {
+      const rect = coreBox;
       const fit = Math.max(0.5, Math.min(1, innerWidth / innerHeight / 1.75));
       const units = 2 * 18 * Math.tan(Math.PI / 9) / innerHeight;
       const weight = P.a === P.b ? 1 : P.a === 10 ? 1 - P.m : P.m;
       P.ox = lerp(P.ox, (rect.left + rect.width / 2 - document.documentElement.clientWidth / 2) * units / fit, weight);
-      P.oy = lerp(P.oy, (innerHeight / 2 - rect.top - rect.height / 2) * units, weight);
+      P.oy = lerp(P.oy, (innerHeight / 2 - rect.top + y - rect.height / 2) * units, weight);
       P.sc = lerp(P.sc, Math.min(rect.width / 600, rect.height / 560) * 140 * units / (3.1 * fit), weight);
     }
     P.lp = 0; P.sp = 0; P.da = 0; P.sb = 1;
@@ -322,7 +338,7 @@ export function createDirector(env) {
 
   function setOpen(p) { openP = clamp(p); }
   function setDir(d) { openDir = d; }
-  /** keep the chrome fully drawn for a moment (under the loader) so the browser rasterises it once, before the morph needs it */
+  /** Keep the chrome fully drawn while preparing the wordmark transition. */
   function holdChrome(v) { chromeHold = v; if (!v) lastUi = -1; }
 
   return { rebuild, update, setOpen, setDir, holdChrome, geo, get anchors() { return anchors; }, get D() { return D; } };

@@ -41,21 +41,20 @@ Points are drawn with additive blending. Bond lines are a second draw pass over 
 | `high` | 40,000 | 60 | normal desktop |
 | `mid` | 22,000 | 60 | only forced with `?tier=mid` |
 | `low` | 14,000 | 30 | phone, coarse pointer, or 2 or fewer cores / 2 GB or less memory |
-| `soft` | 40,000 | 30 | software renderer (SwiftShader, llvmpipe, Basic Render) |
+| `soft` | 10,000 | 24 | software renderer (SwiftShader, llvmpipe, Basic Render) |
 
-Everyone gets the same design and the same scene. Quality is never guessed from a GPU's name. If frames genuinely run long, the governor in `field.js` steps the point count down, and as a last resort turns the canvas off. The OS "reduce motion" setting is deliberately not used; `?motion=reduce` exists only to test the static layout.
+The same scenes run at every tier. If frames regularly exceed the budget, the governor in `field.js` lowers resolution and point count, then turns the canvas off if needed. The document renders before WebGL initializes. The renderer polls shader-link completion where the browser supports parallel shader compilation.
 
 ## The opener (`src/main.js`, `director.js`, `shaders.js`)
 
-On first load of Home the points spell "NovAtom Labs". A click, key press or scroll gesture morphs them into the hero crystal; a visitor who does nothing gets the morph after 9 seconds.
+Home opens on the hero. Replay brings up the particle wordmark, which morphs into the hero crystal on a click, key press or scroll gesture, or after 1.5 seconds.
 
 State machine: `openState` is `'name'`, `'morphing'`, `'rewind'` or `'done'`.
 
-- A GSAP tween drives one number, `openObj.p`, from 0 to 1 (`MORPH_SECONDS` = 4.2, linear: the per-point stagger in the shader provides the easing). The director reads it as the single source for the crystal, nav and headline.
+- A 2.6-second linear GSAP tween drives `openObj.p` from 0 to 1. The shader staggers each point and the director coordinates the crystal, nav and headline.
 - The replay buttons (`[data-replay]`, in the hero and footer) run the tween backwards over 2.8 s with `sine.inOut`, then re-arm the opener. From another page they navigate home first.
 - The wordmark follows pointer parallax only (`uPar`), not a clock-driven spin, so it cannot drift or tilt over time.
 - `warmChrome()` runs a few frames with the nav, rail and headline faintly painted before the first reveal. A first paint of some CSS effects triggers a GPU shader compile that shows up as a visible stall mid-morph.
-- It plays once per page load. Returning Home through the nav shows the normal hero.
 - **Switch it off:** `const OPENER = false;` at the top of `src/main.js`.
 
 ## Styles

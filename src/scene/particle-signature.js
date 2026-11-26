@@ -85,6 +85,7 @@ export function mountParticleSignature(mark) {
   const motion = { progress: 0 };
   let gl, program, buffer, observer, resize, tween;
   let render = () => {};
+  let visible = false;
   let disposed = false;
   const dispose = () => {
     disposed = true;
@@ -131,12 +132,13 @@ export function mountParticleSignature(mark) {
       if (matchMedia('(any-pointer: fine)').matches) {
         const release = () => { cursor.target = 0; };
         window.addEventListener('pointermove', (event) => {
-          if (event.pointerType === 'touch') { release(); return; }
+          if (event.pointerType === 'touch' || !visible || !mark.contains(event.target)) { release(); return; }
           const bounds = canvas.getBoundingClientRect();
-          if (!bounds.width || !bounds.height || !mark.contains(event.target)) { release(); return; }
+          if (!bounds.width || !bounds.height) { release(); return; }
           cursor.x = (event.clientX - bounds.left) / bounds.width * 2 - 1;
           cursor.y = 1 - (event.clientY - bounds.top) / bounds.height * 2;
           cursor.target = 1;
+          if (visible) gsap.ticker.add(render);
         }, { passive: true, signal: input.signal });
         mark.addEventListener('pointerleave', release, { signal: input.signal });
         window.addEventListener('blur', release, { signal: input.signal });
@@ -166,7 +168,8 @@ export function mountParticleSignature(mark) {
       resize.observe(mark);
       canvas.addEventListener('webglcontextlost', dispose, { once: true });
       observer = new IntersectionObserver(([entry]) => {
-        if (entry.isIntersecting) {
+        visible = entry.isIntersecting;
+        if (visible) {
           gsap.ticker.add(render);
         } else {
           gsap.ticker.remove(render);
@@ -174,10 +177,14 @@ export function mountParticleSignature(mark) {
       });
       const draw = render;
       render = (time) => {
-        if (!tween && (!isHero || !document.documentElement.classList.contains('opener-lock'))) {
+        if (visible && !tween && (!isHero || !document.documentElement.classList.contains('opener-lock'))) {
           tween = gsap.to(motion, { progress: 1, duration: 2.55, ease: 'none' });
         }
         draw(time);
+        // After the particles arrive the mark is static until the pointer moves.
+        if (motion.progress === 1 && cursor.target === 0 && cursor.strength === 0) {
+          gsap.ticker.remove(render);
+        }
       };
       observer.observe(mark);
     } catch {

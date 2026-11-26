@@ -19,9 +19,8 @@
     }
   </script>
   <script>
-    /* mark JS early so the fonts gate below applies from the first paint; a timer guarantees the page can never stay hidden */
+    /* Motion styles can distinguish enhanced pages from documents without JavaScript. */
     document.documentElement.classList.add('js');
-    setTimeout(function () { document.documentElement.classList.add('fonts'); }, 4000);
   </script>
   <script>
     /* everyone gets the full experience; ?motion=reduce exists only so the static layout can be tested */
