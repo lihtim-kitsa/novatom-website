@@ -46,7 +46,7 @@ Shared by all pages: `head.html` (meta, social image, early scripts), `chrome.ht
 
 **Animated headings.** Put `data-split` on a heading to get the masked line-rise on scroll. Add `data-react` as well (on `.display` headings) to make the letters react to the pointer.
 
-**The contact form.** It is in `partials/s-contact.html`. The endpoint, validation and status messages are in `src/pages.js` (`FORM_ENDPOINT`, `initForm`). To send submissions to a different Formspree form, change `FORM_ENDPOINT` to the new `https://formspree.io/f/<id>`. The hidden `_gotcha` field is a honeypot; leave it in.
+**The contact form.** Its Formspree endpoint is the form's `action` in `partials/s-contact.html`. Validation and status messages are in `initForm` in `src/pages.js`. The hidden `_gotcha` field is a honeypot. Review `privacy.html` whenever the data collected or the submission provider changes.
 
 ## Scroll dots (the rail on the right)
 

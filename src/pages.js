@@ -421,10 +421,10 @@ function initCore(env) {
 }
 
 /* ------------------------------------------------------------------ contact form */
-const FORM_ENDPOINT = 'https://formspree.io/f/mojoyejy';
 function initForm(env) {
   const form = $('#form');
   if (!form) return;
+  form.noValidate = true;
   const status = $('#formStatus'), send = $('#send');
   const checks = [
     ['f-name', 'e-name', (v) => v.trim().length > 0],
@@ -455,7 +455,7 @@ function initForm(env) {
     if (data.get('_gotcha')) { status.className = 'status-msg is-ok'; status.textContent = 'Thanks. We have your request.'; form.reset(); return; }
     send.disabled = true; send.textContent = 'Sending';
     try {
-      const res = await fetch(FORM_ENDPOINT, { method: 'POST', headers: { Accept: 'application/json' }, body: data });
+      const res = await fetch(form.action, { method: form.method, headers: { Accept: 'application/json' }, body: data });
       if (!res.ok) throw new Error(String(res.status));
       status.className = 'status-msg is-ok'; status.textContent = 'Thanks. We have your request and will reply by email.'; form.reset();
     } catch {

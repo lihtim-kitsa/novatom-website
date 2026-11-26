@@ -8,13 +8,14 @@
           <canvas class="crystal-scene" data-crystal-scene data-crystal-cycle width="600" height="600" role="img" aria-label="GaN four-atom crystal close-up" hidden></canvas>
           <figcaption>GaN · Wurtzite</figcaption>
         </figure>
-        <form class="form" id="form" novalidate>
+        <form class="form" id="form" action="https://formspree.io/f/mojoyejy" method="post">
           <div class="field"><label for="f-name">Name</label><input id="f-name" name="name" type="text" autocomplete="name" required /><p class="err" id="e-name" hidden>Enter your name.</p></div>
           <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" autocomplete="email" required /><p class="err" id="e-email" hidden>Enter an email address we can reply to.</p></div>
           <div class="field"><label for="f-org">Organisation <span class="opt">optional</span></label><input id="f-org" name="organisation" type="text" autocomplete="organization" /></div>
           <div class="field"><label for="f-msg">What problem do you want to solve?</label><textarea id="f-msg" name="message" rows="4" required></textarea><p class="err" id="e-msg" hidden>Add a sentence or two about the problem.</p></div>
           <input class="hp" type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" />
           <div class="form-foot">
+            <p class="form-privacy note">We use your details to respond to your request. <a href="/privacy">Privacy policy</a></p>
             <button class="btn" type="submit" id="send">Send request</button>
             <p class="status-msg" id="formStatus" role="status" aria-live="polite"></p>
           </div>

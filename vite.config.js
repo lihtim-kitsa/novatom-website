@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const pages = ['index', 'technology', 'products', 'nexcon', 'kronig', 'about', 'contact'];
+const pages = ['index', 'technology', 'products', 'nexcon', 'kronig', 'about', 'contact', 'privacy', '404'];
 
 /** <!-- @include name.html --> pulls a file from /partials, recursively, in dev and build. */
 function includes() {

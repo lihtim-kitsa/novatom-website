@@ -497,6 +497,18 @@
 }
 .contact .field :is(input, textarea):focus { border-color: var(--cobalt-t); }
 .contact .field [aria-invalid='true'] { border-color: var(--err); }
+.form-privacy { flex: 0 0 100%; }
+.form-privacy a, .privacy-policy a { color: var(--cobalt-t); text-underline-offset: .2em; }
+.privacy-policy {
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  padding: calc(104px + env(safe-area-inset-top)) var(--edge) clamp(3rem, 8vw, 8rem);
+}
+.privacy-policy > * { width: min(100%, 68ch); }
+.privacy-policy h1 { font: 600 clamp(2.75rem, 7vw, 6rem)/1 var(--f-display); letter-spacing: -.055em; }
+.privacy-policy h2 { font: 600 clamp(1.25rem, 3vw, 2rem)/1.15 var(--f-display); }
+.privacy-policy p { margin-top: .75rem; }
+.privacy-policy section { border-top: 1px solid var(--hairline); padding-top: 1.2rem; }
 @media (max-width: 700px) {
   .contact-crystal { grid-column: 1 / -1; }
   .contact-crystal .crystal-scene { max-width: 19rem; }

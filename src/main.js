@@ -275,7 +275,7 @@ function staticRender() {
 }
 
 /* ------------------------------------------------------------------ router: scanline wipe between real pages */
-const PAGES = new Set(['/', '/index.html', '/technology', '/technology.html', '/products', '/products.html', '/nexcon', '/nexcon.html', '/kronig', '/kronig.html', '/about', '/about.html', '/contact', '/contact.html']);
+const PAGES = new Set(['/', '/index.html', '/technology', '/technology.html', '/products', '/products.html', '/nexcon', '/nexcon.html', '/kronig', '/kronig.html', '/about', '/about.html', '/contact', '/contact.html', '/privacy', '/privacy.html']);
 const cache = new Map();
 const load = (path) => {
   if (!cache.has(path)) cache.set(path, fetch(path).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); }));
