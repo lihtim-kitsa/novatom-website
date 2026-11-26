@@ -429,7 +429,7 @@
   overflow-wrap: anywhere;
 }
 .kronig-lead > p { max-width: 46ch; }
-.kronig-lead .textlink { justify-self: start; }
+.kronig-lead .textlink { place-self: start; }
 .kronig-label, .kronig-junction { font: 500 .82rem/1.45 var(--f-data); }
 .kronig-label { text-transform: uppercase; color: var(--cobalt-t); }
 .kronig-junction {
@@ -616,11 +616,6 @@ html.reduced body:is([data-page="nexcon"], [data-page="contact"]) #gl { visibili
     margin-bottom: -.28em;
   }
   .phero .lede { margin-top: 1rem; }
-  #company-hero {
-    align-items: center;
-    padding-block: max(76px, calc(66px + env(safe-area-inset-top)));
-  }
-
   .nexcon { display: block; min-height: 100svh; }
   .nexcon-copy { width: 100%; }
   .has-webgl-field:not(.reduced) .nexcon-copy { background: transparent; }
@@ -720,4 +715,78 @@ html.reduced body:is([data-page="nexcon"], [data-page="contact"]) #gl { visibili
 }
 @media (prefers-reduced-motion: reduce) {
   .menu { transition: none; }
+}
+
+
+/* Full-width About bands follow Kronig's editorial grid. */
+main[data-page="about"] > section {
+  min-height: 0;
+  padding: 0;
+  border-top: 1px solid var(--hairline);
+}
+main[data-page="about"] > #company-hero {
+  --about-nav-offset: calc(104px + env(safe-area-inset-top));
+  padding-top: var(--about-nav-offset);
+  border-top: 0;
+}
+.about-band {
+  display: grid;
+  grid-template-columns: minmax(0, 35fr) minmax(0, 65fr);
+  width: 100%;
+  gap: 0;
+  align-items: stretch;
+}
+.about-band > * {
+  grid-column: auto;
+  min-width: 0;
+  margin: 0;
+  padding: clamp(1.5rem, 4vw, 4rem) var(--edge);
+}
+.about-band > :last-child { border-left: 1px solid var(--hairline); }
+#company-hero .about-band {
+  grid-template-columns: minmax(0, 70fr) minmax(0, 30fr);
+  min-height: calc(100svh - var(--about-nav-offset));
+  align-items: stretch;
+  border-top: 1px solid var(--hairline);
+}
+#company-hero .display {
+  align-content: center;
+  max-width: none;
+  font-size: clamp(2.45rem, 6vw, 8.5rem);
+  line-height: 1;
+  text-transform: none;
+}
+#company-hero .lede {
+  align-content: center;
+  max-width: none;
+  margin: 0;
+  font-size: clamp(1.2rem, 1rem + .7vw, 2rem);
+  line-height: 1.5;
+}
+.about-band .facts { margin-top: 0; }
+.about-band .mkt { align-content: center; }
+.about-band .mkt-x { position: static; margin-bottom: 1rem; color: var(--cobalt-t); }
+.about-band .model { align-content: start; max-width: none; }
+.about-band .model-p {
+  max-width: 60ch;
+  font-size: clamp(1.2rem, 1rem + 1vw, 2.15rem);
+  line-height: 1.45;
+}
+.about-band > :is(.team-panel, .mkt, .lede) { background: var(--plate); }
+.about-band > .team-panel { overflow-wrap: anywhere; }
+.about-band .people { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.about-band .people li {
+  padding: 1rem 0;
+  border-width: 1px 0 0;
+  border-radius: 0;
+  background: transparent;
+}
+.about-band .people li:last-child { border-bottom-width: 1px; }
+.about-band .people .p-name { font-size: clamp(1.4rem, 2.25vw, 2.8rem); }
+.about-band .trac-h { margin: 0 0 1.4rem; }
+
+@media (max-width: 820px) {
+  #company-hero .about-band, .about-band { grid-template-columns: minmax(0, 1fr); min-height: auto; }
+  .about-band > :last-child { border-left: 0; border-top: 1px solid var(--hairline); }
+  #company-hero .display { font-size: clamp(2.25rem, 8vw, 4.5rem); }
 }
