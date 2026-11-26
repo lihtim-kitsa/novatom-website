@@ -34,8 +34,9 @@ export class Field {
    * @param {HTMLCanvasElement} canvas
    * @param {{count:number, latCount:number, dprMax:number, fps:number}} opts
    */
-  constructor(canvas, { count, latCount, dprMax, fps, bonds }) {
+  constructor(canvas, { count, latCount, dprMax, fps, bonds, wordmark = true }) {
     this.wantBonds = !!bonds;
+    this.hasWordmark = wordmark;
     this.canvas = canvas;
     this.count = count;
     this.latCount = latCount;
@@ -133,7 +134,7 @@ export class Field {
       seed[i * 4] = Math.random(); seed[i * 4 + 1] = Math.random();
       seed[i * 4 + 2] = Math.random(); seed[i * 4 + 3] = Math.random();
     }
-    const lat = buildLattices(L, { bonds: this.wantBonds });
+    const lat = L ? buildLattices(L, { bonds: this.wantBonds }) : null;
     for (let i = 0; i < L; i++) {
       for (let a = 0; a < 3; a++) {
         lat0[i * 3 + a] = lat.wurtzite.positions[i * 3 + a];
@@ -160,13 +161,14 @@ export class Field {
       this.bufs.push(b);
     };
     attr('position', pos, 3); attr('aSeed', seed, 4);
-    attr('aLat0', lat0, 3); attr('aLat1', lat1, 3); attr('aLat2', lat2, 3);
-    attr('aClass', cls, 1); attr('aSpec', spec, 3);
-    attr('aTxt', buildWordmark(N), 3);
-    this.hasWordmark = true;
+    if (lat) {
+      attr('aLat0', lat0, 3); attr('aLat1', lat1, 3); attr('aLat2', lat2, 3);
+      attr('aClass', cls, 1); attr('aSpec', spec, 3);
+    }
+    if (this.hasWordmark) attr('aTxt', buildWordmark(N), 3);
 
     this.ebos = null;
-    if (lat.bonds) {
+    if (lat?.bonds) {
       this.ebos = lat.bonds.map((pairs) => {
         const b = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b);
