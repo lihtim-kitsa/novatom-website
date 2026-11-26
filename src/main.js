@@ -495,10 +495,17 @@ async function boot() {
   initNavHide();
   initLinks();
 
+  const directHome = document.body.dataset.page === 'home' && !location.hash;
   const fieldReady = initField();
   initPage();
   root.classList.add('ready');
   const f = await fieldReady;
+  if (directHome && f && !busy && document.body.dataset.page === 'home' && !location.hash && window.scrollY < 2) {
+    openerPlayed = false;
+    applyOpener();
+    await warmChrome();
+    armOpener();
+  }
   if (f) gsap.to(f.state, { intro: 1, duration: 2.6, ease: 'power2.out' });
 }
 

@@ -47,7 +47,7 @@ The same scenes run at every tier. If frames regularly exceed the budget, the go
 
 ## The opener (`src/main.js`, `director.js`, `shaders.js`)
 
-Home opens on the hero. Replay brings up the particle wordmark, which morphs into the hero crystal on a click, key press or scroll gesture, or after 1.5 seconds.
+A direct visit to Home starts the particle wordmark once WebGL is ready, if the visitor is still at the top. It morphs into the hero crystal on a click, key press or scroll gesture, or after 1.5 seconds. Replay runs the sequence again.
 
 State machine: `openState` is `'name'`, `'morphing'`, `'rewind'` or `'done'`.
 
