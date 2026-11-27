@@ -1,25 +1,28 @@
+const heroParts = [['Nov', 500], ['Atom', 700], [' Labs', 400]];
+const fontSpec = weight => `${weight} 150px "Bricolage Grotesque Variable"`;
+
+export async function loadHeroWordmarkFont() {
+  const faces = await Promise.all(heroParts.map(([part, weight]) => document.fonts.load(fontSpec(weight), part)));
+  return faces.every(matches => matches.length > 0);
+}
+
 /**
  * Rasterises "NovAtom Labs" (Nov 500, Atom 700, Labs 400, the brand weights) in the page font and returns one
  * target position per field point, so the crystal's own atoms can spell the name before they become the crystal.
  * Coordinates are in scene units, centred on the origin, `width` units wide.
  */
-export function buildWordmark(count, { width = 11.5, text, image } = {}) {
-  const W = 1400, H = 280, size = 150;
+export function buildWordmark(count, { width = 11.5, text } = {}) {
+  const W = 1400, H = 280;
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const x = c.getContext('2d', { willReadFrequently: true });
   x.fillStyle = '#fff';
-  if (image) {
-    const scale = Math.min(W / image.naturalWidth, H / image.naturalHeight);
-    x.drawImage(image, 0, 0, image.naturalWidth * scale, image.naturalHeight * scale);
-  } else {
-    const parts = text ? [[text, 800]] : [['Nov', 500], ['Atom', 700], [' Labs', 400]];
-    const font = (w) => `${w} ${size}px "Bricolage Grotesque Variable", "Helvetica Neue", Arial, sans-serif`;
-    let total = 0;
-    parts.forEach(([t, w]) => { x.font = font(w); total += x.measureText(t).width; });
-    let px = (W - total) / 2;
-    parts.forEach(([t, w]) => { x.font = font(w); x.fillText(t, px, H * 0.68); px += x.measureText(t).width; });
-  }
+  const parts = text ? [[text, 800]] : heroParts;
+  const font = weight => `${fontSpec(weight)}, "Helvetica Neue", Arial, sans-serif`;
+  let total = 0;
+  parts.forEach(([t, w]) => { x.font = font(w); total += x.measureText(t).width; });
+  let px = (W - total) / 2;
+  parts.forEach(([t, w]) => { x.font = font(w); x.fillText(t, px, H * 0.68); px += x.measureText(t).width; });
 
   const data = x.getImageData(0, 0, W, H).data;
   const xs = [], ys = [];

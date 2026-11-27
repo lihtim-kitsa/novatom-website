@@ -34,10 +34,9 @@ export class Field {
    * @param {HTMLCanvasElement} canvas
    * @param {{count:number, latCount:number, dprMax:number, fps:number}} opts
    */
-  constructor(canvas, { count, latCount, dprMax, fps, bonds, wordmark = true, wordmarkImage }) {
+  constructor(canvas, { count, latCount, dprMax, fps, bonds, wordmark = true }) {
     this.wantBonds = !!bonds;
     this.hasWordmark = wordmark;
-    this.wordmarkImage = wordmarkImage;
     this.canvas = canvas;
     this.count = count;
     this.latCount = latCount;
@@ -168,7 +167,6 @@ export class Field {
     }
     if (this.hasWordmark) attr('aTxt', buildWordmark(N, {
       text: typeof this.hasWordmark === 'string' ? this.hasWordmark : undefined,
-      image: this.wordmarkImage,
     }), 3);
 
     this.ebos = null;

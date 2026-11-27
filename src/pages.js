@@ -16,16 +16,18 @@ const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * 
 
 /* ------------------------------------------------------------------ headings: masked line rise, reactive letters on display type */
 export function initHeadings(env) {
-  $$('main [data-split]').forEach((el) => {
+  const canReact = !env.reduced && matchMedia('(any-hover: hover) and (any-pointer: fine)').matches;
+  $$('main [data-split], main h1').forEach((el) => {
     const hero = el.classList.contains('display');
-    const react = el.hasAttribute('data-react') && !env.reduced;
+    const reveal = el.hasAttribute('data-split');
+    const react = canReact && el.matches('h1, [data-react]');
+    if (!reveal && !react) return;
     SplitText.create(el, {
       type: react ? 'lines, words, chars' : 'lines',
       mask: 'lines', autoSplit: true, maskClass: 'split-mask', charsClass: 'char', wordsClass: 'word',
       onSplit(self) {
-        if (react && self.chars) env.reactive.add(self.chars);
-        if (env.reduced) return undefined;
-        if (hero) return undefined;
+        if (react) env.reactive.set(el, self.chars);
+        if (env.reduced || hero || !reveal) return undefined;
         return gsap.from(self.lines, {
           yPercent: 108, duration: 1.0, ease: 'expo.out', stagger: 0.08,
           scrollTrigger: { trigger: el, start: 'top 88%', once: true },

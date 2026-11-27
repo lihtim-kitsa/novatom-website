@@ -20,6 +20,7 @@
   --amber: #f0b655;
 
   --f-display: 'Instrument Sans Variable', 'Helvetica Neue', Arial, sans-serif;
+  --f-title: 'Bricolage Grotesque Variable', var(--f-display);
   --f-text: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --f-data: 'JetBrains Mono', ui-monospace, Consolas, monospace;
 
@@ -72,6 +73,9 @@ main, .foot { position: relative; z-index: 1; }
 /* ------------------------------------------------------------------ type */
 .display, .h2, .bignum, h3, .btn, .brand, .mat-name, .p-name, .pr-name, dt {
   font-family: var(--f-display);
+}
+h1, h2, h3, .display, .h2, .h3 {
+  font-family: var(--f-title);
 }
 .display {
   font-weight: 600; font-stretch: 100%;
@@ -258,7 +262,7 @@ p { max-width: 38rem; }
 .kronig-head { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem clamp(1.5rem, 3vw, 3rem); align-items: end; }
 .kronig-head .h2 { grid-column: 1 / span 7; max-width: 17ch; font-size: clamp(1.9rem, 3.6vw, 3.6rem); }
 .kronig-lead { grid-column: 8 / span 5; display: grid; gap: 1rem; }
-.h3 { font-family: var(--f-display); font-weight: 600; font-size: clamp(1.4rem, 1.2rem + 0.8vw, 2rem); letter-spacing: -0.025em; line-height: 1.1; }
+.h3 { font-weight: 600; font-size: clamp(1.4rem, 1.2rem + 0.8vw, 2rem); letter-spacing: -0.025em; line-height: 1.1; }
 
 .pipe { --p: 0; position: relative; display: grid; grid-template-columns: repeat(7, 1fr); }
 .pipe::before, .pipe::after { content: ''; position: absolute; top: 8px; left: 8px; right: calc(100% / 7 - 8px); height: 2px; }

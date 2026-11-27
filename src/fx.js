@@ -51,13 +51,16 @@ export function initCursor() {
 
 /* ------------------------------------------------------------------ reactive type: letters swell and narrow around the pointer */
 export function createReactiveType() {
-  let groups = [];
+  const groups = new Map();
   let rects = [];
   let raf = 0, lastRects = 0, pointer = null;
 
   function measure() {
     rects = [];
-    groups.forEach((chars) => chars.forEach((c) => { const r = c.getBoundingClientRect(); rects.push({ c, x: r.left + r.width / 2, y: r.top + r.height / 2 }); }));
+    groups.forEach(({ chars, weight, width }) => chars.forEach((c) => {
+      const r = c.getBoundingClientRect();
+      rects.push({ c, weight, width, x: r.left + r.width / 2, y: r.top + r.height / 2 });
+    }));
     lastRects = performance.now();
   }
   function frame() {
@@ -68,19 +71,33 @@ export function createReactiveType() {
       if (r.y < -200 || r.y > innerHeight + 200) continue;
       const d = Math.hypot(pointer.x - r.x, pointer.y - r.y);
       const f = clamp(1 - d / 190);
-      r.c.style.fontVariationSettings = f > 0.01 ? `'wght' ${Math.round(600 + 200 * f)}, 'wdth' ${Math.round(100 - 22 * f)}` : '';
+      r.c.style.fontWeight = f > 0.01 ? String(Math.round(r.weight + (800 - r.weight) * f)) : '';
+      r.c.style.fontStretch = f > 0.01 ? `${r.width + (78 - r.width) * f}%` : '';
     }
   }
-  const onMove = (e) => { pointer = { x: e.clientX, y: e.clientY }; if (!raf) raf = requestAnimationFrame(frame); };
-  const onLeave = () => { pointer = null; rects.forEach((r) => (r.c.style.fontVariationSettings = '')); };
+  const onMove = (e) => {
+    if (e.pointerType === 'touch' || !groups.size) return;
+    pointer = { x: e.clientX, y: e.clientY };
+    if (!raf) raf = requestAnimationFrame(frame);
+  };
+  const onLeave = () => {
+    pointer = null;
+    rects.forEach(({ c }) => {
+      c.style.fontWeight = '';
+      c.style.fontStretch = '';
+    });
+  };
   addEventListener('pointermove', onMove, { passive: true });
   addEventListener('scroll', () => { lastRects = 0; }, { passive: true });
   document.addEventListener('pointerleave', onLeave);
 
   return {
-    set(list) { groups = list; measure(); },
-    add(chars) { groups.push(chars); measure(); },
-    clear() { groups = []; rects = []; },
+    set(el, chars) {
+      const style = getComputedStyle(el);
+      groups.set(el, { chars, weight: Number(style.fontWeight), width: Math.min(100, parseFloat(style.fontStretch) || 100) });
+      measure();
+    },
+    clear() { onLeave(); groups.clear(); rects = []; },
   };
 }
 

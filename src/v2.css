@@ -54,7 +54,7 @@ html.has-cursor input, html.has-cursor textarea { cursor: text; }
 
 /* ------------------------------------------------------------------ reactive display type */
 .word { display: inline-block; white-space: nowrap; }
-.char { display: inline-block; transition: font-variation-settings 0.35s var(--ease); }
+.char { display: inline-block; transition: font-weight 0.35s var(--ease), font-stretch 0.35s var(--ease); }
 .display { font-size: clamp(2.8rem, 7.2vw, 8rem); letter-spacing: -0.04em; }
 .lede { opacity: 1; color: var(--fg); }
 
@@ -347,7 +347,7 @@ html { scrollbar-gutter: stable; }
 }
 .hero .lede { grid-row: 3; max-width: 38ch; font: 400 clamp(.8rem, 1vw, 1rem)/1.55 var(--f-data); color: #d4d9e3; }
 .hero-actions { grid-row: 3; justify-content: flex-end; }
-.nav-links > a, .menu-trigger { font: 400 .78rem/1.3 var(--f-data); text-transform: uppercase; }
+.nav-links > a, .menu-trigger { font: 400 .78rem/1.3 var(--f-title); text-transform: uppercase; }
 .hero-actions .btn, .nav > .btn-sm { border-radius: 3px; }
 .space-copy .space-lead { font-family: var(--f-display); letter-spacing: -.035em; line-height: 1.08; }
 .space-copy .facts, .k-suite .facts-row { border: 1px solid var(--line); background: var(--bg); }

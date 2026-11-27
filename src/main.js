@@ -56,16 +56,16 @@ async function initField(onProgress) {
   if (onProgress) await onProgress(25);
   if (!tierInfo) { canvas.style.display = 'none'; return null; }
   try {
-    const wordmarkImage = $('.hero-signature img') || new Image();
-    if (!wordmarkImage.src) wordmarkImage.src = '/novatom-hero.svg';
-    const [{ Field }, image] = await Promise.all([
+    const wantsHeroMotion = Boolean($('.hero-signature')) && !reduced && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const [{ Field }, heroMotion] = await Promise.all([
       import('./scene/field.js'),
-      wordmarkImage.decode().then(() => wordmarkImage, () => undefined),
+      wantsHeroMotion && import('./scene/wordmark.js')
+        .then(({ loadHeroWordmarkFont }) => loadHeroWordmarkFont())
+        .catch(() => false),
     ]);
     if (onProgress) await onProgress(60);
-    const heroMotion = Boolean(image) && !reduced && !matchMedia('(prefers-reduced-motion: reduce)').matches;
     const count = Math.round(tierInfo.count * (heroMotion ? (tierInfo.software ? 1.2 : 1.35) : 1));
-    const readyField = await new Field(canvas, { ...tierInfo, count, wordmark: heroMotion, wordmarkImage: image }).init();
+    const readyField = await new Field(canvas, { ...tierInfo, count, wordmark: heroMotion }).init();
     if (onProgress) await onProgress(90);
     field = readyField;
     if (heroMotion && root.classList.contains('startup-loading') && window.scrollY < 2) {

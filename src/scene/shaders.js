@@ -445,7 +445,7 @@ void main() {
   float elec = step(0.985, gS.z) * ringW;                      // a few bright electrons on the orbits
   float sx = mix(-8.0, 8.0, fract(gT * 0.14));                   // a glint sweeps across the letters
   float glint = glyphW * exp(-pow((aTxt.x - sx) / 0.9, 2.0));
-  size *= (1.0 - 0.35 * ringW) * (1.0 + 2.2 * elec) * (1.0 + 0.8 * glint) * (1.0 - 0.45 * dustW);
+  size *= (1.0 - 0.35 * ringW) * (1.0 + 2.2 * elec) * (1.0 + 0.55 * glint) * (1.0 - 0.45 * dustW);
   alpha *= (1.0 - 0.45 * ringW) * (1.0 - 0.6 * dustW);
   alpha += 0.8 * elec;
   float shimmer = glyphW;
@@ -513,8 +513,7 @@ void main() {
     float grain = 0.82 + 0.18 * sin(aTxt.y * 230.0 + 0.4 * sin(aTxt.y * 581.0));
     vec3 metal = mix(vec3(0.04, 0.31, 0.73), vec3(0.33, 0.74, 1.0), bands) * grain;
     metal = mix(metal, vec3(0.69, 0.9, 1.0), 0.18 * step(0.88, gS.w));
-    // LABS sits below the gap in the hero wordmark's sampled glyphs.
-    if (aTxt.y < -0.65) metal = vec3(1.0);
+    metal *= 0.86;
     vec3 txtCol = mix(mix(uFg, uCobalt, 0.65), metal, step(wordmarkDustEnd, gS.y));
     col = mix(col, txtCol, txtW);
   }

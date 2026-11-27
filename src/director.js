@@ -44,7 +44,7 @@ export function createDirector(env) {
   let mobileBox = null;
   let loopCopy = null;
 
-  let heroMark = null;
+  let heroMarkWidth = 0;
   let heroTrack = null;
   let startupProgress = 1;
   let page = 'home';
@@ -77,13 +77,12 @@ export function createDirector(env) {
       const rect = document.querySelector(selector)?.getBoundingClientRect();
       return rect?.height ? { top: rect.top + y, left: rect.left, width: rect.width, height: rect.height } : null;
     };
-    heroMark = sceneBox('.hero-signature img');
+    heroMarkWidth = document.querySelector('.hero-signature')?.getBoundingClientRect().width ?? 0;
     const track = document.querySelector('.hero-track');
     const hero = document.getElementById('top');
     heroTrack = track && hero ? box(track) : null;
     if (heroTrack) {
       heroTrack.travel = getComputedStyle(hero).position === 'sticky' ? Math.max(0, heroTrack.h - hero.offsetHeight) : 0;
-      if (heroMark) heroMark.top -= clamp(y - heroTrack.top, 0, heroTrack.travel);
     }
     coreBox = sceneBox('#coreSvg');
     crystalBox = sceneBox('[data-crystal-scene]');
@@ -178,20 +177,18 @@ export function createDirector(env) {
     }
 
     // Push through the lettering, then let the emblem settle behind the mission copy.
-    if (showWordmark && heroMark && y < spaceTop) {
+    if (showWordmark && heroMarkWidth && y < spaceTop) {
       const progress = sstep(travel * .09, travel * .67, y);
       if (progress < 1) {
-        const vw = document.documentElement.clientWidth;
         const fit = Math.max(.5, Math.min(1, innerWidth / vh / 1.75));
         const units = 36 * Math.tan(Math.PI / 9) / vh;
         T.a = 7;
         T.b = 8;
         T.m = .16 + .68 * progress;
-        const wordmarkScale = heroMark.width * units / (11.5 * fit);
+        const wordmarkScale = heroMarkWidth * units / (11.5 * fit);
         T.sc = lerp(wordmarkScale, T.sc, progress) + wordmarkScale * .78 * Math.sin(Math.PI * progress);
-        T.ox = lerp((heroMark.left + heroMark.width / 2 - vw / 2) * units / fit, T.ox, progress);
-        const wordmarkY = y - clamp(y - (heroTrack?.top ?? 0), 0, heroTrack?.travel ?? 0);
-        T.oy = lerp((vh / 2 - heroMark.top + wordmarkY - heroMark.height / 2) * units, T.oy, progress);
+        T.ox *= progress;
+        T.oy *= progress;
         T.rp = lerp(.17, T.rp, progress) + .45 * T.hp;
         T.ck *= progress;
         if (startupProgress < 1) {
