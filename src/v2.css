@@ -349,7 +349,13 @@ html { scrollbar-gutter: stable; }
 .hero-actions { grid-row: 3; justify-content: flex-end; }
 .nav-links > a, .menu-trigger { font: 400 .78rem/1.3 var(--f-title); text-transform: uppercase; }
 .hero-actions .btn, .nav > .btn-sm { border-radius: 3px; }
-.space-copy .space-lead { font-family: var(--f-display); letter-spacing: -.035em; line-height: 1.08; }
+.space-copy .space-lead {
+  margin-inline-start: auto;
+  font-family: var(--f-display);
+  letter-spacing: -.035em;
+  line-height: 1.08;
+  text-align: right;
+}
 .space-copy .facts, .k-suite .facts-row { border: 1px solid var(--line); background: var(--bg); }
 .space-copy .facts > div, .k-suite .facts-row > div { padding: .8rem 1.1rem; }
 .space-copy .facts > div:last-child { border-bottom: 0; }
